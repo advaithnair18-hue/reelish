@@ -1,0 +1,3 @@
+# Optional: download the video behind a shared link so its speech can be transcribed.
+# Only used when ENABLE_VIDEO_DOWNLOAD=true. Check each platform's terms before enabling.
+yt-dlp>=2024.8.6

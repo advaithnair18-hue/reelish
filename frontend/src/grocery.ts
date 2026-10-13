@@ -3,12 +3,13 @@ import type { GroceryItem } from "./api";
 export const AISLE_ORDER = ["Produce", "Meat & seafood", "Dairy & eggs", "Bakery", "Pantry", "Frozen", "Other"];
 
 /** "1 1/2 cup" -> "1 1/2 cups"; countable items get no unit. */
-export function formatAmount(item: Pick<GroceryItem, "quantity" | "quantity_display" | "unit">): string {
-  if (item.quantity == null) return "";
-  const unit = item.unit && item.quantity > 1 && !["g", "kg", "ml", "l", "oz", "lb", "tsp", "tbsp"].includes(item.unit)
+export function formatAmount(item: { quantity: number | string | null; quantity_display?: string; unit: string }): string {
+  if (item.quantity == null || item.quantity === "") return "";
+  const n = Number(item.quantity);
+  const unit = item.unit && n > 1 && !["g", "kg", "ml", "l", "oz", "lb", "tsp", "tbsp"].includes(item.unit)
     ? pluralize(item.unit)
     : item.unit;
-  return [item.quantity_display, unit].filter(Boolean).join(" ");
+  return [item.quantity_display || String(item.quantity), unit].filter(Boolean).join(" ");
 }
 
 function pluralize(unit: string): string {

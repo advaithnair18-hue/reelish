@@ -1,10 +1,12 @@
 FROM python:3.12-slim
 RUN apt-get update && apt-get install -y --no-install-recommends ffmpeg && rm -rf /var/lib/apt/lists/*
 WORKDIR /app
-COPY requirements.txt requirements-whisper.txt ./
+COPY requirements.txt requirements-whisper.txt requirements-download.txt ./
 ARG WITH_WHISPER=false
+ARG WITH_DOWNLOAD=false
 RUN pip install --no-cache-dir -r requirements.txt \
- && if [ "$WITH_WHISPER" = "true" ]; then pip install --no-cache-dir -r requirements-whisper.txt; fi
+ && if [ "$WITH_WHISPER" = "true" ]; then pip install --no-cache-dir -r requirements-whisper.txt; fi \
+ && if [ "$WITH_DOWNLOAD" = "true" ]; then pip install --no-cache-dir -r requirements-download.txt; fi
 COPY app ./app
 COPY worker.py .
 RUN useradd --create-home appuser && mkdir -p /data/uploads && chown -R appuser /data

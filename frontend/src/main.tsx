@@ -1,60 +1,71 @@
+import "@fontsource-variable/bricolage-grotesque";
 import React from "react";
 import ReactDOM from "react-dom/client";
-import { BrowserRouter, Navigate, NavLink, Outlet, Route, Routes, useNavigate } from "react-router-dom";
+import { BrowserRouter, Navigate, NavLink, Outlet, Route, Routes, useLocation } from "react-router-dom";
 import { token } from "./api";
 import AuthPage from "./pages/AuthPage";
+import HomePage from "./pages/HomePage";
 import ListPage from "./pages/ListPage";
-import ListsPage from "./pages/ListsPage";
-import RecipeEditPage from "./pages/RecipeEditPage";
-import RecipesPage from "./pages/RecipesPage";
-import UploadPage from "./pages/UploadPage";
+import RecipePage from "./pages/RecipePage";
+import SettingsPage from "./pages/SettingsPage";
+import SharePage from "./pages/SharePage";
+import { registerServiceWorker } from "./pwa";
 import "./styles.css";
+import { Icon, ToastProvider } from "./ui";
 
-function Layout() {
-  const navigate = useNavigate();
-  if (!token.get()) return <Navigate to="/login" replace />;
+function RequireAuth() {
+  const location = useLocation();
+  if (!token.get()) {
+    const next = encodeURIComponent(location.pathname + location.search);
+    return <Navigate to={`/welcome?next=${next}`} replace />;
+  }
+  return <Outlet />;
+}
+
+function TabLayout() {
   return (
-    <div className="shell">
-      <header className="topbar">
-        <NavLink to="/" className="brand">
-          Reel<span>Groceries</span>
-        </NavLink>
-        <nav>
-          <NavLink to="/" end>Add</NavLink>
-          <NavLink to="/recipes">Recipes</NavLink>
-          <NavLink to="/lists">Lists</NavLink>
-          <button
-            className="link"
-            onClick={() => {
-              token.clear();
-              navigate("/login");
-            }}
-          >
-            Log out
-          </button>
-        </nav>
-      </header>
-      <main>
+    <div className="app">
+      <main className="screen">
         <Outlet />
       </main>
+      <nav className="tabbar" aria-label="Main">
+        <NavLink to="/" end>
+          <Icon name="recipes" />
+          <span>Recipes</span>
+        </NavLink>
+        <NavLink to="/list">
+          <Icon name="list" />
+          <span>List</span>
+        </NavLink>
+        <NavLink to="/settings">
+          <Icon name="settings" />
+          <span>Settings</span>
+        </NavLink>
+      </nav>
     </div>
   );
 }
 
+registerServiceWorker();
+
 ReactDOM.createRoot(document.getElementById("root")!).render(
   <React.StrictMode>
-    <BrowserRouter>
-      <Routes>
-        <Route path="/login" element={<AuthPage />} />
-        <Route element={<Layout />}>
-          <Route path="/" element={<UploadPage />} />
-          <Route path="/recipes" element={<RecipesPage />} />
-          <Route path="/recipes/:id" element={<RecipeEditPage />} />
-          <Route path="/lists" element={<ListsPage />} />
-          <Route path="/lists/:id" element={<ListPage />} />
-        </Route>
-        <Route path="*" element={<Navigate to="/" replace />} />
-      </Routes>
-    </BrowserRouter>
+    <ToastProvider>
+      <BrowserRouter>
+        <Routes>
+          <Route path="/welcome" element={<AuthPage />} />
+          <Route element={<RequireAuth />}>
+            <Route path="/share" element={<SharePage />} />
+            <Route element={<TabLayout />}>
+              <Route path="/" element={<HomePage />} />
+              <Route path="/recipes/:id" element={<RecipePage />} />
+              <Route path="/list" element={<ListPage />} />
+              <Route path="/settings" element={<SettingsPage />} />
+            </Route>
+          </Route>
+          <Route path="*" element={<Navigate to="/" replace />} />
+        </Routes>
+      </BrowserRouter>
+    </ToastProvider>
   </React.StrictMode>,
 );

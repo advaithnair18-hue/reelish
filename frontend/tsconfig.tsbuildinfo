@@ -1,1 +1,1 @@
-{"root":["./src/api.ts","./src/grocery.test.ts","./src/grocery.ts","./src/main.tsx","./src/pages/AuthPage.tsx","./src/pages/ListPage.tsx","./src/pages/ListsPage.tsx","./src/pages/RecipeEditPage.tsx","./src/pages/RecipesPage.tsx","./src/pages/UploadPage.tsx"],"version":"5.9.3"}
+{"root":["./src/api.ts","./src/grocery.test.ts","./src/grocery.ts","./src/main.tsx","./src/pwa.ts","./src/ui.tsx","./src/pages/AuthPage.tsx","./src/pages/HomePage.tsx","./src/pages/ListPage.tsx","./src/pages/RecipePage.tsx","./src/pages/SettingsPage.tsx","./src/pages/SharePage.tsx"],"version":"5.9.3"}

@@ -16,6 +16,8 @@ class User(Base):
     id: Mapped[int] = mapped_column(primary_key=True)
     email: Mapped[str] = mapped_column(String(255), unique=True, index=True)
     password_hash: Mapped[str] = mapped_column(String(255))
+    # Add each new recipe's ingredients to the default list automatically.
+    auto_add: Mapped[bool] = mapped_column(Boolean, default=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_now)
 
 
@@ -23,7 +25,13 @@ class Video(Base):
     __tablename__ = "videos"
     id: Mapped[int] = mapped_column(primary_key=True)
     user_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), index=True)
-    storage_key: Mapped[str] = mapped_column(String(255))
+    # "file" (uploaded/shared video file) or "link" (shared TikTok/Reel/Short URL)
+    kind: Mapped[str] = mapped_column(String(10), default="file")
+    storage_key: Mapped[str] = mapped_column(String(255), default="")
+    source_url: Mapped[str] = mapped_column(String(1000), default="")
+    platform: Mapped[str] = mapped_column(String(20), default="")
+    author: Mapped[str] = mapped_column(String(255), default="")
+    thumbnail_url: Mapped[str] = mapped_column(String(2000), default="")
     original_filename: Mapped[str] = mapped_column(String(255), default="")
     caption: Mapped[str] = mapped_column(Text, default="")
     # uploaded -> processing -> done | failed
@@ -44,9 +52,18 @@ class Recipe(Base):
     servings: Mapped[int | None] = mapped_column(Integer, nullable=True)
     steps: Mapped[list] = mapped_column(JSON, default=list)
     reviewed: Mapped[bool] = mapped_column(Boolean, default=False)
+    # True when ingredients were inferred from the dish name rather than stated in the video.
+    estimated: Mapped[bool] = mapped_column(Boolean, default=False)
+    # Copied from the video so they survive the video being deleted.
+    source_url: Mapped[str] = mapped_column(String(1000), default="")
+    platform: Mapped[str] = mapped_column(String(20), default="")
+    author: Mapped[str] = mapped_column(String(255), default="")
+    thumbnail_url: Mapped[str] = mapped_column(String(2000), default="")
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_now)
 
     video: Mapped[Video | None] = relationship(back_populates="recipe")
+    lists: Mapped[list["GroceryList"]] = relationship(secondary="grocery_list_recipes",
+                                                      back_populates="recipes")
     ingredients: Mapped[list["Ingredient"]] = relationship(
         back_populates="recipe", cascade="all, delete-orphan", order_by="Ingredient.position"
     )
@@ -78,9 +95,11 @@ class GroceryList(Base):
     id: Mapped[int] = mapped_column(primary_key=True)
     user_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), index=True)
     name: Mapped[str] = mapped_column(String(255))
+    # Each user has one default list that shared recipes flow into.
+    is_default: Mapped[bool] = mapped_column(Boolean, default=False)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_now)
 
-    recipes: Mapped[list[Recipe]] = relationship(secondary=grocery_list_recipes)
+    recipes: Mapped[list[Recipe]] = relationship(secondary=grocery_list_recipes, back_populates="lists")
     items: Mapped[list["GroceryItem"]] = relationship(
         back_populates="grocery_list", cascade="all, delete-orphan", order_by="GroceryItem.position"
     )
@@ -97,5 +116,7 @@ class GroceryItem(Base):
     aisle: Mapped[str] = mapped_column(String(40), default="Other")
     checked: Mapped[bool] = mapped_column(Boolean, default=False)
     have_already: Mapped[bool] = mapped_column(Boolean, default=False)
+    # Added by hand (not from a recipe), so it survives the list being rebuilt.
+    custom: Mapped[bool] = mapped_column(Boolean, default=False)
 
     grocery_list: Mapped[GroceryList] = relationship(back_populates="items")

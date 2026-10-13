@@ -4,7 +4,7 @@ import { formatAmount, groupByAisle, progress } from "./grocery";
 
 const item = (over: Partial<GroceryItem>): GroceryItem => ({
   id: 1, name: "x", quantity: 1, quantity_display: "1", unit: "", aisle: "Other",
-  checked: false, have_already: false, ...over,
+  checked: false, have_already: false, custom: false, ...over,
 });
 
 describe("formatAmount", () => {

@@ -35,6 +35,7 @@ class ExtractedRecipe:
     servings: int | None = None
     ingredients: list[ExtractedIngredient] = field(default_factory=list)
     steps: list[str] = field(default_factory=list)
+    estimated: bool = False
 
 
 class ExtractionError(Exception):
@@ -169,25 +170,50 @@ Rules:
 </transcript>"""
 
 
+ESTIMATE_PROMPT = """A short cooking video is titled below, but it doesn't list its ingredients.
+If the text names a recognizable dish, give the ingredients a home cook would typically
+buy to make it, with typical amounts for {servings} servings. If it does not name a dish,
+return an empty ingredients list.
+
+Return ONLY a JSON object, no prose, matching:
+{{"title": str, "servings": int | null,
+  "ingredients": [{{"name": str, "quantity": str, "unit": str, "raw_text": ""}}],
+  "steps": []}}
+
+name: what you would buy ("onion"); unit: "cup", "tbsp", "tsp", "g", "ml", "clove", "can" or "".
+Keep it to the essentials (at most 15 ingredients); skip water.
+
+<video_text>
+{text}
+</video_text>"""
+
+
 class ClaudeExtractor:
     def __init__(self, api_key: str, model: str, client: httpx.Client | None = None):
         self.api_key = api_key
         self.model = model
         self.client = client or httpx.Client(timeout=60)
 
-    def extract(self, caption: str, transcript: str) -> ExtractedRecipe:
+    def _ask(self, prompt: str) -> ExtractedRecipe:
         resp = self.client.post(
             "https://api.anthropic.com/v1/messages",
             headers={"x-api-key": self.api_key, "anthropic-version": "2023-06-01",
                      "content-type": "application/json"},
             json={"model": self.model, "max_tokens": 2000,
-                  "messages": [{"role": "user", "content": PROMPT.format(
-                      caption=caption[:8000], transcript=transcript[:20000])}]},
+                  "messages": [{"role": "user", "content": prompt}]},
         )
         if resp.status_code != 200:
             raise ExtractionError(f"LLM request failed with HTTP {resp.status_code}")
         text = "".join(block.get("text", "") for block in resp.json().get("content", []))
         return parse_llm_json(text)
+
+    def extract(self, caption: str, transcript: str) -> ExtractedRecipe:
+        return self._ask(PROMPT.format(caption=caption[:8000], transcript=transcript[:20000]))
+
+    def estimate(self, text: str, servings: int | None) -> ExtractedRecipe:
+        result = self._ask(ESTIMATE_PROMPT.format(text=text[:4000], servings=servings or 2))
+        result.estimated = True
+        return result
 
 
 def parse_llm_json(text: str) -> ExtractedRecipe:
@@ -210,12 +236,31 @@ def parse_llm_json(text: str) -> ExtractedRecipe:
     )
 
 
-def extract_recipe(caption: str, transcript: str) -> ExtractedRecipe:
-    """Use the LLM when configured; fall back to rules if it fails."""
-    if settings.anthropic_api_key:
+def extract_recipe(caption: str, transcript: str, extractor: ClaudeExtractor | None = None) -> ExtractedRecipe:
+    """Use the LLM when configured, falling back to rules if it fails.
+
+    If nothing in the video lists ingredients but it names a dish, ask the LLM for a
+    typical ingredient list and mark the result estimated, so the user knows to check it.
+    """
+    if extractor is None and settings.anthropic_api_key:
+        extractor = ClaudeExtractor(settings.anthropic_api_key, settings.anthropic_model)
+    result = None
+    if extractor is not None:
         try:
-            return ClaudeExtractor(settings.anthropic_api_key, settings.anthropic_model).extract(
-                caption, transcript)
+            result = extractor.extract(caption, transcript)
         except (ExtractionError, httpx.HTTPError) as exc:
             log.warning("LLM extraction failed, falling back to rules: %s", exc)
-    return RuleBasedExtractor().extract(caption, transcript)
+    if result is None or not result.ingredients:
+        rules = RuleBasedExtractor().extract(caption, transcript)
+        if result is None or rules.ingredients:
+            result = rules
+    if not result.ingredients and extractor is not None and settings.estimate_missing:
+        try:
+            guess = extractor.estimate(f"{caption}\n{transcript}".strip(), result.servings)
+            if guess.ingredients:
+                guess.title = result.title if result.title != "Untitled recipe" else guess.title
+                guess.steps = result.steps
+                return guess
+        except (ExtractionError, httpx.HTTPError) as exc:
+            log.warning("LLM estimate failed: %s", exc)
+    return result

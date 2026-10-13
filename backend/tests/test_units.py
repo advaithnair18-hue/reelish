@@ -115,7 +115,7 @@ def test_format_quantity(q, text):
 
 @pytest.mark.parametrize("name,aisle", [
     ("red onion", "Produce"), ("chicken thighs", "Meat & seafood"), ("parmesan", "Dairy & eggs"),
-    ("soy sauce", "Pantry"), ("dragonfruit powder", "Other"),
+    ("soy sauce", "Pantry"), ("penne", "Pantry"), ("dragonfruit powder", "Other"),
 ])
 def test_guess_aisle(name, aisle):
     assert guess_aisle(name) == aisle

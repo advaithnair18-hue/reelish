@@ -4,12 +4,15 @@ x-backend: &backend
     context: ./backend
     args:
       WITH_WHISPER: ${WITH_WHISPER:-true}
+      WITH_DOWNLOAD: ${WITH_DOWNLOAD:-false}
   environment:
     DATABASE_URL: postgresql+psycopg://reel:reel@db:5432/reel
     REDIS_URL: redis://redis:6379/0
     UPLOAD_DIR: /data/uploads
     JWT_SECRET: ${JWT_SECRET:-change-me-in-production}
     ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
+    INSTAGRAM_OEMBED_TOKEN: ${INSTAGRAM_OEMBED_TOKEN:-}
+    ENABLE_VIDEO_DOWNLOAD: ${ENABLE_VIDEO_DOWNLOAD:-false}
     CORS_ORIGINS: http://localhost:8080
   volumes:
     - uploads:/data/uploads

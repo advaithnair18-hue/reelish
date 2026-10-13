@@ -22,11 +22,27 @@ class UserOut(BaseModel):
     model_config = ConfigDict(from_attributes=True)
     id: int
     email: str
+    auto_add: bool
+
+
+class UserPatch(BaseModel):
+    auto_add: bool | None = None
+
+
+class LinkIn(BaseModel):
+    # Raw share-sheet text is fine: "Check this out! https://vm.tiktok.com/abc"
+    url: str = Field(min_length=8, max_length=2000)
+    caption: str = Field(default="", max_length=10000)
 
 
 class VideoOut(BaseModel):
     model_config = ConfigDict(from_attributes=True)
     id: int
+    kind: str
+    source_url: str
+    platform: str
+    author: str
+    thumbnail_url: str
     original_filename: str
     caption: str
     status: str
@@ -67,7 +83,6 @@ class IngredientIn(_QuantityFields):
 
 
 class IngredientOut(BaseModel):
-    model_config = ConfigDict(from_attributes=True)
     id: int
     name: str
     quantity: float | None
@@ -90,34 +105,51 @@ class RecipeIn(BaseModel):
     ingredients: list[IngredientIn] = Field(default=[], max_length=100)
 
 
-class RecipeOut(BaseModel):
+class RecipeSummary(BaseModel):
     id: int
     title: str
+    reviewed: bool
+    estimated: bool
+    source_url: str
+    platform: str
+    author: str
+    thumbnail_url: str
+    created_at: datetime
+    ingredient_count: int
+    in_default_list: bool
+
+    @staticmethod
+    def _fields(r) -> dict:
+        return dict(id=r.id, title=r.title, reviewed=r.reviewed, estimated=bool(r.estimated),
+                    source_url=r.source_url or "", platform=r.platform or "", author=r.author or "",
+                    thumbnail_url=r.thumbnail_url or "", created_at=r.created_at,
+                    ingredient_count=len(r.ingredients),
+                    in_default_list=any(gl.is_default for gl in r.lists))
+
+    @classmethod
+    def from_model(cls, r) -> RecipeSummary:
+        return cls(**cls._fields(r))
+
+
+class RecipeOut(RecipeSummary):
     servings: int | None
     steps: list[str]
-    reviewed: bool
     video_id: int | None
-    created_at: datetime
     ingredients: list[IngredientOut]
 
     @classmethod
     def from_model(cls, r) -> RecipeOut:
-        return cls(id=r.id, title=r.title, servings=r.servings, steps=r.steps or [],
-                   reviewed=r.reviewed, video_id=r.video_id, created_at=r.created_at,
+        return cls(**cls._fields(r), servings=r.servings, steps=r.steps or [], video_id=r.video_id,
                    ingredients=[IngredientOut.from_model(i) for i in r.ingredients])
-
-
-class RecipeSummary(BaseModel):
-    model_config = ConfigDict(from_attributes=True)
-    id: int
-    title: str
-    reviewed: bool
-    created_at: datetime
 
 
 class GroceryListIn(BaseModel):
     name: str = Field(min_length=1, max_length=255)
     recipe_ids: list[int] = Field(min_length=1, max_length=50)
+
+
+class ListRecipeIn(BaseModel):
+    recipe_id: int
 
 
 class GroceryItemIn(_QuantityFields):
@@ -138,24 +170,26 @@ class GroceryItemOut(BaseModel):
     aisle: str
     checked: bool
     have_already: bool
+    custom: bool
 
     @classmethod
     def from_model(cls, it) -> GroceryItemOut:
         return cls(id=it.id, name=it.name,
                    quantity=float(it.quantity) if it.quantity is not None else None,
                    quantity_display=format_quantity(it.quantity), unit=it.unit, aisle=it.aisle,
-                   checked=it.checked, have_already=it.have_already)
+                   checked=it.checked, have_already=it.have_already, custom=bool(it.custom))
 
 
 class GroceryListOut(BaseModel):
     id: int
     name: str
+    is_default: bool
     created_at: datetime
     recipes: list[RecipeSummary]
     items: list[GroceryItemOut]
 
     @classmethod
     def from_model(cls, gl) -> GroceryListOut:
-        return cls(id=gl.id, name=gl.name, created_at=gl.created_at,
-                   recipes=[RecipeSummary.model_validate(r) for r in gl.recipes],
+        return cls(id=gl.id, name=gl.name, is_default=bool(gl.is_default), created_at=gl.created_at,
+                   recipes=[RecipeSummary.from_model(r) for r in gl.recipes],
                    items=[GroceryItemOut.from_model(i) for i in gl.items])

@@ -5,7 +5,7 @@ from sqlalchemy.orm import Session
 from ..auth import create_token, current_user, hash_password, verify_password
 from ..db import get_db
 from ..models import User
-from ..schemas import Credentials, TokenOut, UserOut
+from ..schemas import Credentials, TokenOut, UserOut, UserPatch
 
 router = APIRouter(prefix="/api/auth", tags=["auth"])
 
@@ -32,4 +32,12 @@ def login(body: Credentials, db: Session = Depends(get_db)):
 
 @router.get("/me", response_model=UserOut)
 def me(user: User = Depends(current_user)):
+    return user
+
+
+@router.patch("/me", response_model=UserOut)
+def update_me(body: UserPatch, user: User = Depends(current_user), db: Session = Depends(get_db)):
+    for field, value in body.model_dump(exclude_none=True).items():
+        setattr(user, field, value)
+    db.commit()
     return user

@@ -1,9 +1,21 @@
 // Thin typed client for the FastAPI backend.
 
 export type VideoStatus = "uploaded" | "processing" | "done" | "failed";
+export type Platform = "tiktok" | "instagram" | "youtube" | "";
+
+export interface User {
+  id: number;
+  email: string;
+  auto_add: boolean;
+}
 
 export interface Video {
   id: number;
+  kind: "file" | "link";
+  source_url: string;
+  platform: Platform;
+  author: string;
+  thumbnail_url: string;
   original_filename: string;
   caption: string;
   status: VideoStatus;
@@ -22,22 +34,32 @@ export interface Ingredient {
   raw_text?: string;
 }
 
-export interface Recipe {
-  id: number;
-  title: string;
-  servings: number | null;
-  steps: string[];
-  reviewed: boolean;
-  video_id: number | null;
-  created_at: string;
-  ingredients: Ingredient[];
-}
-
 export interface RecipeSummary {
   id: number;
   title: string;
   reviewed: boolean;
+  estimated: boolean;
+  source_url: string;
+  platform: Platform;
+  author: string;
+  thumbnail_url: string;
   created_at: string;
+  ingredient_count: number;
+  in_default_list: boolean;
+}
+
+export interface Recipe extends RecipeSummary {
+  servings: number | null;
+  steps: string[];
+  video_id: number | null;
+  ingredients: Ingredient[];
+}
+
+export interface RecipeInput {
+  title: string;
+  servings: number | null;
+  steps: string[];
+  ingredients: Ingredient[];
 }
 
 export interface GroceryItem {
@@ -49,11 +71,13 @@ export interface GroceryItem {
   aisle: string;
   checked: boolean;
   have_already: boolean;
+  custom: boolean;
 }
 
 export interface GroceryList {
   id: number;
   name: string;
+  is_default: boolean;
   created_at: string;
   recipes: RecipeSummary[];
   items: GroceryItem[];
@@ -68,7 +92,10 @@ export const token = {
 };
 
 export class ApiError extends Error {
-  constructor(public status: number, message: string) {
+  constructor(
+    public status: number,
+    message: string,
+  ) {
     super(message);
   }
 }
@@ -82,7 +109,7 @@ async function request<T>(path: string, init: RequestInit = {}): Promise<T> {
   const res = await fetch(`/api${path}`, { ...init, headers });
   if (res.status === 401 && t) {
     token.clear();
-    window.location.assign("/login");
+    window.location.assign("/welcome");
   }
   if (!res.ok) {
     let message = res.statusText;
@@ -114,15 +141,18 @@ export const api = {
     request<{ access_token: string }>("/auth/register", { method: "POST", body: json({ email, password }) }),
   login: (email: string, password: string) =>
     request<{ access_token: string }>("/auth/login", { method: "POST", body: json({ email, password }) }),
-  me: () => request<{ id: number; email: string }>("/auth/me"),
+  me: () => request<User>("/auth/me"),
+  updateMe: (patch: Partial<Pick<User, "auto_add">>) => request<User>("/auth/me", { method: "PATCH", body: json(patch) }),
 
-  uploadVideo: (file: File, caption: string) => {
+  shareLink: (url: string, caption = "") =>
+    request<Video>("/videos/link", { method: "POST", body: json({ url, caption }) }),
+  uploadVideo: (file: File, caption = "") => {
     const form = new FormData();
     form.append("file", file);
     form.append("caption", caption);
     return request<Video>("/videos", { method: "POST", body: form });
   },
-  videos: () => request<Video[]>("/videos"),
+  videos: () => request<Video[]>("/videos?limit=50"),
   video: (id: number) => request<Video>(`/videos/${id}`),
   retryVideo: (id: number, caption: string) => {
     const form = new FormData();
@@ -131,21 +161,22 @@ export const api = {
   },
   deleteVideo: (id: number) => request<void>(`/videos/${id}`, { method: "DELETE" }),
 
-  recipes: () => request<RecipeSummary[]>("/recipes"),
+  recipes: () => request<RecipeSummary[]>("/recipes?limit=200"),
   recipe: (id: number) => request<Recipe>(`/recipes/${id}`),
-  saveRecipe: (id: number, body: Omit<Recipe, "id" | "reviewed" | "video_id" | "created_at">) =>
-    request<Recipe>(`/recipes/${id}`, { method: "PUT", body: json(body) }),
-  createRecipe: (body: Omit<Recipe, "id" | "reviewed" | "video_id" | "created_at">) =>
-    request<Recipe>("/recipes", { method: "POST", body: json(body) }),
+  saveRecipe: (id: number, body: RecipeInput) => request<Recipe>(`/recipes/${id}`, { method: "PUT", body: json(body) }),
+  createRecipe: (body: RecipeInput) => request<Recipe>("/recipes", { method: "POST", body: json(body) }),
   deleteRecipe: (id: number) => request<void>(`/recipes/${id}`, { method: "DELETE" }),
 
-  lists: () => request<GroceryList[]>("/lists"),
-  list: (id: number) => request<GroceryList>(`/lists/${id}`),
-  createList: (name: string, recipe_ids: number[]) =>
-    request<GroceryList>("/lists", { method: "POST", body: json({ name, recipe_ids }) }),
+  defaultList: () => request<GroceryList>("/lists/default"),
+  addRecipeToList: (listId: number, recipeId: number) =>
+    request<GroceryList>(`/lists/${listId}/recipes`, { method: "POST", body: json({ recipe_id: recipeId }) }),
+  removeRecipeFromList: (listId: number, recipeId: number) =>
+    request<GroceryList>(`/lists/${listId}/recipes/${recipeId}`, { method: "DELETE" }),
   updateItem: (listId: number, itemId: number, patch: Partial<Pick<GroceryItem, "checked" | "have_already">>) =>
     request<GroceryItem>(`/lists/${listId}/items/${itemId}`, { method: "PATCH", body: json(patch) }),
   addItem: (listId: number, name: string) =>
     request<GroceryItem>(`/lists/${listId}/items`, { method: "POST", body: json({ name }) }),
-  deleteList: (id: number) => request<void>(`/lists/${id}`, { method: "DELETE" }),
+  deleteItem: (listId: number, itemId: number) => request<void>(`/lists/${listId}/items/${itemId}`, { method: "DELETE" }),
+  resetList: (listId: number) => request<GroceryList>(`/lists/${listId}/reset`, { method: "POST" }),
+  clearList: (listId: number) => request<GroceryList>(`/lists/${listId}/clear`, { method: "POST" }),
 };
