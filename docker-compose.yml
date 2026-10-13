@@ -1,0 +1,47 @@
+# One command runs everything: docker compose up --build  ->  http://localhost:8080
+x-backend: &backend
+  build:
+    context: ./backend
+    args:
+      WITH_WHISPER: ${WITH_WHISPER:-true}
+  environment:
+    DATABASE_URL: postgresql+psycopg://reel:reel@db:5432/reel
+    REDIS_URL: redis://redis:6379/0
+    UPLOAD_DIR: /data/uploads
+    JWT_SECRET: ${JWT_SECRET:-change-me-in-production}
+    ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
+    CORS_ORIGINS: http://localhost:8080
+  volumes:
+    - uploads:/data/uploads
+  depends_on:
+    db: { condition: service_healthy }
+    redis: { condition: service_started }
+
+services:
+  db:
+    image: postgres:16-alpine
+    environment: { POSTGRES_USER: reel, POSTGRES_PASSWORD: reel, POSTGRES_DB: reel }
+    volumes: [pgdata:/var/lib/postgresql/data]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U reel"]
+      interval: 3s
+      retries: 10
+
+  redis:
+    image: redis:7-alpine
+
+  api:
+    <<: *backend
+
+  worker:
+    <<: *backend
+    command: ["python", "worker.py"]
+
+  web:
+    build: ./frontend
+    ports: ["8080:80"]
+    depends_on: [api]
+
+volumes:
+  pgdata:
+  uploads:

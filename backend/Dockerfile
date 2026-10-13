@@ -1,0 +1,13 @@
+FROM python:3.12-slim
+RUN apt-get update && apt-get install -y --no-install-recommends ffmpeg && rm -rf /var/lib/apt/lists/*
+WORKDIR /app
+COPY requirements.txt requirements-whisper.txt ./
+ARG WITH_WHISPER=false
+RUN pip install --no-cache-dir -r requirements.txt \
+ && if [ "$WITH_WHISPER" = "true" ]; then pip install --no-cache-dir -r requirements-whisper.txt; fi
+COPY app ./app
+COPY worker.py .
+RUN useradd --create-home appuser && mkdir -p /data/uploads && chown -R appuser /data
+USER appuser
+EXPOSE 8000
+CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]

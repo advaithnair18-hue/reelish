@@ -1,0 +1,2 @@
+# Optional: local speech-to-text. Without it, the app uses the caption only.
+faster-whisper>=1.0
