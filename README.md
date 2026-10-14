@@ -6,7 +6,7 @@ People save recipe videos and never cook them, because turning a 45-second video
 
 ![Screens](docs/screens.png)
 
-[Watch the 1-minute demo](docs/demo.mp4)
+[Watch the demo: sharing a recipe from TikTok](docs/demo.mp4). The TikTok screen and Android share menu in the video are stand-ins; from the moment Reel Groceries is picked, it is the real app.
 
 ## What it does
 

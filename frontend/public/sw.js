@@ -5,7 +5,7 @@
 // API we stash the shared data in the Cache API and open /share, where the logged-in
 // app picks it up and sends it to the server.
 
-const SHELL = "rg-shell-v2";
+const SHELL = "rg-shell-v3";
 const INBOX = "share-inbox";
 
 self.addEventListener("install", (event) => {
