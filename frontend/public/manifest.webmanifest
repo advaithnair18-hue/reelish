@@ -1,6 +1,6 @@
 {
-  "name": "Reel Groceries",
-  "short_name": "Groceries",
+  "name": "Reelish",
+  "short_name": "Reelish",
   "description": "Share a TikTok or Reel, get its ingredients on your grocery list.",
   "start_url": "/",
   "scope": "/",

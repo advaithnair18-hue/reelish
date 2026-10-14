@@ -78,7 +78,7 @@ def fetch_link_info(url: str, platform: str, client: httpx.Client | None = None)
         return LinkInfo()
     own_client = client is None
     client = client or httpx.Client(timeout=15, follow_redirects=True,
-                                    headers={"User-Agent": "ReelGroceries/1.0"})
+                                    headers={"User-Agent": "Reelish/1.0"})
     try:
         resp = client.get(endpoint[0], params=endpoint[1])
         if resp.status_code != 200:

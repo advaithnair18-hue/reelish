@@ -1,12 +1,12 @@
-# Reel Groceries
+# Reelish
 
 **Share a TikTok, Reel or Short. Its ingredients land on your grocery list.**
 
-People save recipe videos and never cook them, because turning a 45-second video into a shopping list is tedious. Reel Groceries installs on your phone like an app and shows up in the Share menu. Tap **Share → Reel Groceries** on any recipe video, and a few seconds later the ingredients are on your grocery list: merged with everything else you've saved and sorted by store aisle.
+People save recipe videos and never cook them, because turning a 45-second video into a shopping list is tedious. Reelish installs on your phone like an app and shows up in the Share menu. Tap **Share → Reelish** on any recipe video, and a few seconds later the ingredients are on your grocery list: merged with everything else you've saved and sorted by store aisle.
 
 ![Screens](docs/screens.png)
 
-[Watch the demo: sharing a recipe from TikTok](docs/demo.mp4). The TikTok screen and Android share menu in the video are stand-ins; from the moment Reel Groceries is picked, it is the real app.
+Demos: [iPhone](docs/demo-iphone.mp4) · [Android](docs/demo-android.mp4). TikTok, the home screen and the share menus in the videos are stand-ins (they can't run in a recording sandbox); everything from the moment Reelish opens is the real app. The second half of the iPhone video previews the App Store version's share extension, which isn't built yet.
 
 ## What it does
 
@@ -21,7 +21,7 @@ People save recipe videos and never cook them, because turning a 45-second video
 
 ```
 TikTok / Instagram / YouTube
-        │  Share → Reel Groceries
+        │  Share → Reelish
         ▼
 Service worker (/share-target)        the installed app's share target
         │  stashes the link or video, opens /share
@@ -54,7 +54,7 @@ Downloading the video itself, so the app can transcribe what the creator *says*,
 | | Android (Chrome) | iPhone (Safari) |
 | --- | --- | --- |
 | Install to home screen | Yes, with an Install button in the app | Yes, via Share → Add to Home Screen |
-| Appears in the Share menu | Yes | No. Apple doesn't let web apps join the share sheet. Copy the link and tap **Paste** in the app, or make an iOS Shortcut that opens `https://your-domain/share?url=<link>` |
+| Appears in the Share menu | Yes | No. Apple only lets App Store apps join the share sheet. Instead: **Copy link** in TikTok, open Reelish, tap **Paste**. A pasted video link saves straight away. |
 
 A native iOS share extension (via Capacitor or React Native) is the natural next step for one-tap sharing on iPhone.
 
@@ -102,7 +102,7 @@ npm run dev                                 # app on :5173, proxies /api
 
 Open http://localhost:5173 on your computer, or use Chrome's device toolbar to see the phone layout. API docs are at http://localhost:8000/docs.
 
-> Upgrading from the first version? The schema changed. Delete `backend/reel_groceries.db` (or the Postgres volume) and restart.
+> Upgrading from the first version? The schema changed. Delete `backend/reelish.db` (or the Postgres volume) and restart.
 
 ### Tests
 

@@ -5,7 +5,7 @@ from pathlib import Path
 
 class Settings:
     def __init__(self) -> None:
-        self.database_url = os.getenv("DATABASE_URL", "sqlite:///./reel_groceries.db")
+        self.database_url = os.getenv("DATABASE_URL", "sqlite:///./reelish.db")
         self.jwt_secret = os.getenv("JWT_SECRET", "dev-only-secret-change-me-in-production")
         self.jwt_expire_minutes = int(os.getenv("JWT_EXPIRE_MINUTES", "1440"))
         self.upload_dir = Path(os.getenv("UPLOAD_DIR", "./uploads"))

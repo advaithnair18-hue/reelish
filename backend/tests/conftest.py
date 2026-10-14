@@ -7,7 +7,7 @@ from pathlib import Path
 import pytest
 
 # Settings are read at import time, so point them at a throwaway dir first.
-_TMP = Path(tempfile.mkdtemp(prefix="reelgroceries-test-"))
+_TMP = Path(tempfile.mkdtemp(prefix="reelish-test-"))
 os.environ["DATABASE_URL"] = f"sqlite:///{_TMP / 'test.db'}"
 os.environ["UPLOAD_DIR"] = str(_TMP / "uploads")
 os.environ["ANTHROPIC_API_KEY"] = ""  # tests never call the real API

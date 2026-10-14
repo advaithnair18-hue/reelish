@@ -89,7 +89,7 @@ export default function ListPage() {
       {list.items.length === 0 ? (
         <section className="empty">
           <h2>Nothing to buy yet</h2>
-          <p className="muted">Share a recipe video to Reel Groceries and its ingredients appear here.</p>
+          <p className="muted">Share a recipe video to Reelish and its ingredients appear here.</p>
           <Link to="/" className="btn primary">
             Save a recipe
           </Link>

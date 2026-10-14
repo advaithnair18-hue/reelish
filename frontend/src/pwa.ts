@@ -60,7 +60,7 @@ export interface IncomingShare {
 const INBOX = "share-inbox";
 
 /**
- * When the user picks Reel Groceries in their phone's share sheet, the service worker
+ * When the user picks Reelish in their phone's share sheet, the service worker
  * stashes what was shared in the Cache API and opens /share. This reads it back out.
  */
 export async function takeIncomingShare(): Promise<IncomingShare | null> {

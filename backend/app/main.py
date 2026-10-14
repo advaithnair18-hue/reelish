@@ -19,7 +19,7 @@ async def lifespan(_app: FastAPI):
     yield
 
 
-app = FastAPI(title="Reel Groceries API", version="1.0.0", lifespan=lifespan,
+app = FastAPI(title="Reelish API", version="1.0.0", lifespan=lifespan,
               description="Turn recipe videos into a merged grocery list.")
 app.add_middleware(CORSMiddleware, allow_origins=settings.cors_origins, allow_credentials=True,
                    allow_methods=["*"], allow_headers=["*"])

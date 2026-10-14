@@ -41,12 +41,12 @@ export default function HomePage() {
     return () => clearInterval(t);
   }, [working, load]);
 
-  async function save(e?: FormEvent) {
+  async function save(e?: FormEvent, text = link) {
     e?.preventDefault();
-    if (!link.trim()) return;
+    if (!text.trim()) return;
     setBusy(true);
     try {
-      const v = await api.shareLink(link.trim());
+      const v = await api.shareLink(text.trim());
       known.current.set(v.id, v.status);
       setLink("");
       await load();
@@ -63,8 +63,13 @@ export default function HomePage() {
       toast("Couldn't read the clipboard. Long-press the box and paste instead.", "error");
       return;
     }
-    setLink(text);
-    if (!looksLikeVideoLink(text)) toast("That isn't a TikTok, Reel or Short link", "error");
+    if (!looksLikeVideoLink(text)) {
+      setLink(text);
+      toast("That isn't a TikTok, Reel or Short link", "error");
+      return;
+    }
+    // A video link: save it straight away, so on iPhone it's copy link → open → Paste.
+    await save(undefined, text);
   }
 
   async function upload(file: File) {
@@ -218,8 +223,8 @@ function EmptyState() {
           <span>On TikTok, Instagram or YouTube Shorts.</span>
         </li>
         <li>
-          <strong>Tap Share, then Reel Groceries</strong>
-          <span>Or copy the link and paste it above.</span>
+          <strong>Tap Share, then Reelish</strong>
+          <span>On iPhone, tap Copy link, then Paste here.</span>
         </li>
         <li>
           <strong>Open your list</strong>
@@ -252,7 +257,7 @@ function InstallNudge() {
     <div className="nudge">
       <img src="/icons/icon-192.png" alt="" />
       <div>
-        <strong>Add Reel Groceries to your home screen</strong>
+        <strong>Add Reelish to your home screen</strong>
         <p>{install ? "Then it shows up when you tap Share on a video." : "Tap the Share button in Safari, then Add to Home Screen."}</p>
       </div>
       {install ? (

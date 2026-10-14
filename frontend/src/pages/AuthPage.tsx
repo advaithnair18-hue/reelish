@@ -37,7 +37,7 @@ export default function AuthPage() {
       </div>
       <h1 className="welcome-title">Saw it on your feed. Now it's on your list.</h1>
       <p className="welcome-sub">
-        Share any TikTok, Reel or Short to Reel Groceries and its ingredients land on your grocery list, merged and sorted
+        Share any TikTok, Reel or Short to Reelish and its ingredients land on your grocery list, merged and sorted
         by aisle.
       </p>
       <form onSubmit={submit} className="form">

@@ -41,13 +41,13 @@ export default function SettingsPage() {
         <h2>Share from TikTok and Instagram</h2>
         {isStandalone() ? (
           <p className="notice ok">
-            <Icon name="check" size={18} /> Reel Groceries is installed.
+            <Icon name="check" size={18} /> Reelish is installed.
           </p>
         ) : install ? (
           <>
             <p>Install the app first, so it appears in your phone's share sheet.</p>
             <button className="btn primary" onClick={install}>
-              Install Reel Groceries
+              Install Reelish
             </button>
           </>
         ) : null}
@@ -63,7 +63,7 @@ export default function SettingsPage() {
               <span>On the video, tap Share, then Copy link.</span>
             </li>
             <li>
-              <strong>Open Reel Groceries and tap Paste</strong>
+              <strong>Open Reelish and tap Paste</strong>
               <span>iPhone doesn't let web apps join the share sheet, so pasting is the quickest way.</span>
             </li>
           </ol>
@@ -74,7 +74,7 @@ export default function SettingsPage() {
               <span>In TikTok, Instagram or YouTube.</span>
             </li>
             <li>
-              <strong>Choose Reel Groceries</strong>
+              <strong>Choose Reelish</strong>
               <span>If you don't see it, tap More or Other apps.</span>
             </li>
             <li>
