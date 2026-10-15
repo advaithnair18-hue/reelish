@@ -361,6 +361,24 @@ textarea { resize: vertical; }
   padding: 18px; margin-bottom: 14px; display: flex; flex-direction: column; gap: 14px;
 }
 
+/* ---------- iPhone shortcut setup ---------- */
+
+.shortcut { border-color: rgb(255 79 163 / 0.35); background: linear-gradient(160deg, #2a1a40 0%, var(--surface) 55%); }
+.shortcut-head { display: flex; gap: 14px; align-items: flex-start; }
+.shortcut-head h2 { margin-bottom: 4px; }
+.shortcut-head p { font-size: 15px; }
+.shortcut-badge {
+  flex: none; width: 46px; height: 46px; border-radius: 14px; display: grid; place-items: center;
+  background: var(--pink); color: var(--on-pink);
+}
+.how .key-row { grid-column: 2; display: flex; gap: 8px; align-items: center; flex-wrap: wrap; margin-top: 8px; }
+.key {
+  flex: 1; min-width: 0; padding: 9px 12px; border-radius: 10px; background: var(--bg); border: 1.5px dashed var(--line);
+  font: 600 13px ui-monospace, SFMono-Regular, Menlo, monospace; color: var(--aqua); overflow-wrap: anywhere;
+}
+.key-status { display: inline-flex; gap: 6px; align-items: center; color: var(--aqua); font-size: 14px; font-weight: 600; }
+.shortcut-off { align-self: flex-start; }
+
 /* ---------- share screen ---------- */
 
 .share {

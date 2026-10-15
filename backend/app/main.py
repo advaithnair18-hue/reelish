@@ -7,7 +7,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from . import models  # noqa: F401 - registers tables on Base.metadata
 from .config import settings
 from .db import Base, engine
-from .routers import auth, lists, recipes, videos
+from .routers import auth, lists, recipes, shortcut, videos
 
 logging.basicConfig(level=logging.INFO)
 
@@ -24,7 +24,7 @@ app = FastAPI(title="Reelish API", version="1.0.0", lifespan=lifespan,
 app.add_middleware(CORSMiddleware, allow_origins=settings.cors_origins, allow_credentials=True,
                    allow_methods=["*"], allow_headers=["*"])
 
-for r in (auth.router, videos.router, recipes.router, lists.router):
+for r in (auth.router, videos.router, recipes.router, lists.router, shortcut.router):
     app.include_router(r)
 
 

@@ -41,7 +41,10 @@ services:
     command: ["python", "worker.py"]
 
   web:
-    build: ./frontend
+    build:
+      context: ./frontend
+      args:
+        VITE_SHORTCUT_URL: ${VITE_SHORTCUT_URL:-}
     ports: ["8080:80"]
     depends_on: [api]
 

@@ -5,7 +5,8 @@ from sqlalchemy.orm import Session
 from ..auth import create_token, current_user, hash_password, verify_password
 from ..db import get_db
 from ..models import User
-from ..schemas import Credentials, TokenOut, UserOut, UserPatch
+from ..schemas import Credentials, ShareKeyOut, TokenOut, UserOut, UserPatch
+from .shortcut import new_share_key
 
 router = APIRouter(prefix="/api/auth", tags=["auth"])
 
@@ -41,3 +42,17 @@ def update_me(body: UserPatch, user: User = Depends(current_user), db: Session =
         setattr(user, field, value)
     db.commit()
     return user
+
+
+@router.post("/share-key", response_model=ShareKeyOut)
+def create_share_key(user: User = Depends(current_user), db: Session = Depends(get_db)):
+    """Make a new key for the iPhone shortcut. Replaces any old key, which stops working."""
+    key = new_share_key(user)
+    db.commit()
+    return ShareKeyOut(key=key, hint=user.share_key_hint)
+
+
+@router.delete("/share-key", status_code=status.HTTP_204_NO_CONTENT)
+def revoke_share_key(user: User = Depends(current_user), db: Session = Depends(get_db)):
+    user.share_key_hash, user.share_key_hint, user.share_key_created_at = None, "", None
+    db.commit()

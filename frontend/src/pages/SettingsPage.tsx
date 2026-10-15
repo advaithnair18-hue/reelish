@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { api, token, User } from "../api";
 import { isIOS, isStandalone, useInstall } from "../pwa";
+import ShortcutSetup from "../ShortcutSetup";
 import { Icon, Switch, useToast } from "../ui";
 
 export default function SettingsPage() {
@@ -37,37 +38,23 @@ export default function SettingsPage() {
         </div>
       </section>
 
-      <section className="panel">
-        <h2>Share from TikTok and Instagram</h2>
-        {isStandalone() ? (
-          <p className="notice ok">
-            <Icon name="check" size={18} /> Reelish is installed.
-          </p>
-        ) : install ? (
-          <>
-            <p>Install the app first, so it appears in your phone's share sheet.</p>
-            <button className="btn primary" onClick={install}>
-              Install Reelish
-            </button>
-          </>
-        ) : null}
-
-        {isIOS() ? (
-          <ol className="how">
-            <li>
-              <strong>Add to Home Screen</strong>
-              <span>In Safari, tap the Share button, then Add to Home Screen.</span>
-            </li>
-            <li>
-              <strong>Copy the video's link</strong>
-              <span>On the video, tap Share, then Copy link.</span>
-            </li>
-            <li>
-              <strong>Open Reelish and tap Paste</strong>
-              <span>iPhone doesn't let web apps join the share sheet, so pasting is the quickest way.</span>
-            </li>
-          </ol>
-        ) : (
+      {isIOS() ? (
+        <ShortcutSetup user={user} onChange={setUser} />
+      ) : (
+        <section className="panel">
+          <h2>Share from TikTok and Instagram</h2>
+          {isStandalone() ? (
+            <p className="notice ok">
+              <Icon name="check" size={18} /> Reelish is installed.
+            </p>
+          ) : install ? (
+            <>
+              <p>Install the app first, so it appears in your phone's share menu.</p>
+              <button className="btn primary" onClick={install}>
+                Install Reelish
+              </button>
+            </>
+          ) : null}
           <ol className="how">
             <li>
               <strong>On the video, tap Share</strong>
@@ -82,8 +69,8 @@ export default function SettingsPage() {
               <span>The recipe saves and its ingredients go on your list.</span>
             </li>
           </ol>
-        )}
-      </section>
+        </section>
+      )}
 
       <section className="panel">
         <div className="setting">

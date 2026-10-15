@@ -26,6 +26,8 @@ class Settings:
         # When a video names a dish but lists no ingredients, ask the LLM for a typical
         # ingredient list and mark the recipe "estimated".
         self.estimate_missing = os.getenv("ESTIMATE_MISSING_INGREDIENTS", "true").lower() in ("1", "true", "yes")
+        # How long the shortcut endpoint waits for a recipe before answering "saved, working on it".
+        self.shortcut_wait_seconds = float(os.getenv("SHORTCUT_WAIT_SECONDS", "12"))
         self.cors_origins = os.getenv("CORS_ORIGINS", "http://localhost:5173").split(",")
 
 

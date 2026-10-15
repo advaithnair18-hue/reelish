@@ -224,7 +224,7 @@ function EmptyState() {
         </li>
         <li>
           <strong>Tap Share, then Reelish</strong>
-          <span>On iPhone, tap Copy link, then Paste here.</span>
+          <span>On iPhone, set up Save to Reelish in Settings, or copy the link and paste it above.</span>
         </li>
         <li>
           <strong>Open your list</strong>

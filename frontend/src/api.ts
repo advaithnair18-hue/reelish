@@ -7,6 +7,8 @@ export interface User {
   id: number;
   email: string;
   auto_add: boolean;
+  has_share_key: boolean;
+  share_key_hint: string;
 }
 
 export interface Video {
@@ -143,6 +145,8 @@ export const api = {
     request<{ access_token: string }>("/auth/login", { method: "POST", body: json({ email, password }) }),
   me: () => request<User>("/auth/me"),
   updateMe: (patch: Partial<Pick<User, "auto_add">>) => request<User>("/auth/me", { method: "PATCH", body: json(patch) }),
+  createShareKey: () => request<{ key: string; hint: string }>("/auth/share-key", { method: "POST" }),
+  revokeShareKey: () => request<void>("/auth/share-key", { method: "DELETE" }),
 
   shareLink: (url: string, caption = "") =>
     request<Video>("/videos/link", { method: "POST", body: json({ url, caption }) }),

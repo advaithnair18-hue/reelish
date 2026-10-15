@@ -3,6 +3,8 @@ WORKDIR /app
 COPY package.json package-lock.json ./
 RUN npm ci
 COPY . .
+ARG VITE_SHORTCUT_URL=""
+ENV VITE_SHORTCUT_URL=$VITE_SHORTCUT_URL
 RUN npm run build
 
 FROM nginx:1.27-alpine

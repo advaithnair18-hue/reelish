@@ -10,6 +10,7 @@ from ..jobs import enqueue_video
 from ..models import User, Video
 from ..schemas import LinkIn, VideoOut
 from ..services import social
+from ..services.sharing import create_link_video
 
 router = APIRouter(prefix="/api/videos", tags=["videos"])
 
@@ -52,23 +53,13 @@ def upload_video(background: BackgroundTasks, file: UploadFile = File(...),
 @router.post("/link", response_model=VideoOut, status_code=status.HTTP_202_ACCEPTED)
 def share_link(body: LinkIn, background: BackgroundTasks,
                user: User = Depends(current_user), db: Session = Depends(get_db)):
-    """What the share sheet calls: a TikTok, Reel or Short link (or text containing one)."""
-    url = social.find_url(body.url)
-    if url is None:
-        raise HTTPException(status.HTTP_422_UNPROCESSABLE_ENTITY, "No link found in what was shared")
+    """What the in-app share flow calls: a TikTok, Reel or Short link (or text containing one)."""
     try:
-        platform = social.detect_platform(url)
+        video, created = create_link_video(db, user, body.url, body.caption)
     except social.LinkError as exc:
         raise HTTPException(status.HTTP_422_UNPROCESSABLE_ENTITY, str(exc)) from exc
-    # Sharing the same post twice returns the existing one instead of a duplicate.
-    existing = db.scalar(select(Video).where(Video.user_id == user.id, Video.source_url == url))
-    if existing is not None:
-        return _out(existing)
-    video = Video(user_id=user.id, kind="link", source_url=url, platform=platform,
-                  caption=body.caption)
-    db.add(video)
-    db.commit()
-    enqueue_video(video.id, background)
+    if created:
+        enqueue_video(video.id, background)
     return _out(video)
 
 

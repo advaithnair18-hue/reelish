@@ -18,7 +18,16 @@ class User(Base):
     password_hash: Mapped[str] = mapped_column(String(255))
     # Add each new recipe's ingredients to the default list automatically.
     auto_add: Mapped[bool] = mapped_column(Boolean, default=True)
+    # Private key for the iPhone "Save to Reelish" shortcut. Only a SHA-256 hash is stored;
+    # the hint (last 4 characters) lets the user recognise which key is active.
+    share_key_hash: Mapped[str | None] = mapped_column(String(64), unique=True, index=True, nullable=True)
+    share_key_hint: Mapped[str] = mapped_column(String(8), default="")
+    share_key_created_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_now)
+
+    @property
+    def has_share_key(self) -> bool:
+        return self.share_key_hash is not None
 
 
 class Video(Base):

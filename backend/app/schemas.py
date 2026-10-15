@@ -23,6 +23,13 @@ class UserOut(BaseModel):
     id: int
     email: str
     auto_add: bool
+    has_share_key: bool
+    share_key_hint: str
+
+
+class ShareKeyOut(BaseModel):
+    key: str  # shown once; only its hash is stored
+    hint: str
 
 
 class UserPatch(BaseModel):

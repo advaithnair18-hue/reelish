@@ -6,7 +6,7 @@ People save recipe videos and never cook them, because turning a 45-second video
 
 ![Screens](docs/screens.png)
 
-Demos: [iPhone](docs/demo-iphone.mp4) · [Android](docs/demo-android.mp4). TikTok, the home screen and the share menus in the videos are stand-ins (they can't run in a recording sandbox); everything from the moment Reelish opens is the real app. The second half of the iPhone video previews the App Store version's share extension, which isn't built yet.
+Demos: [iPhone, with the Save to Reelish shortcut](docs/demo-iphone.mp4) · [Android](docs/demo-android.mp4). TikTok, the home screen, the share menus and the Shortcuts install screen in the videos are stand-ins (they can't run in a recording sandbox). Reelish itself is real, and the iPhone notifications show the real replies from the shortcut endpoint.
 
 ## What it does
 
@@ -54,9 +54,9 @@ Downloading the video itself, so the app can transcribe what the creator *says*,
 | | Android (Chrome) | iPhone (Safari) |
 | --- | --- | --- |
 | Install to home screen | Yes, with an Install button in the app | Yes, via Share → Add to Home Screen |
-| Appears in the Share menu | Yes | No. Apple only lets App Store apps join the share sheet. Instead: **Copy link** in TikTok, open Reelish, tap **Paste**. A pasted video link saves straight away. |
+| Appears in the Share menu | Yes | Yes, as **Save to Reelish**, an Apple Shortcut that sends the video to Reelish in the background and shows a notification. Users install it once from Settings. [How to build the shortcut](docs/ios-shortcut.md) |
 
-A native iOS share extension (via Capacitor or React Native) is the natural next step for one-tap sharing on iPhone.
+Without the shortcut, iPhone users can still **Copy link** in TikTok, open Reelish and tap **Paste**; a pasted video link saves straight away. A native App Store app with a share extension would put the Reelish icon itself in the share menu's app row.
 
 The share target only works over **HTTPS** on a real domain (or `localhost` for testing), so deploy the app before trying it on your phone.
 
@@ -71,7 +71,7 @@ The share target only works over **HTTPS** on a real domain (or `localhost` for 
 | Video | oEmbed for links, ffmpeg + faster-whisper for speech, optional yt-dlp |
 | AI | Claude via the Messages API, with a rule-based fallback |
 | Auth | PBKDF2 password hashing, JWT bearer tokens |
-| Tests | pytest (116 tests), Vitest |
+| Tests | pytest (134 tests), Vitest |
 | Ops | Docker Compose, nginx, GitHub Actions |
 
 ## Running it
@@ -115,9 +115,11 @@ cd frontend && npm test
 
 ```
 backend/app/
-  routers/          auth, videos (upload + share link), recipes, lists
+  routers/          auth (+ share keys), videos (upload + share link), recipes, lists,
+                    shortcut (the iPhone "Save to Reelish" endpoint)
   services/
     social.py       link parsing, platform detection, oEmbed, optional download
+    sharing.py      shared link -> queued video (used by the app and the shortcut)
     extraction.py   AI + rule-based recipe extraction, ingredient estimates
     lists.py        the default list, rebuilds that keep ticks, add/remove recipes
     units.py        quantity parsing, unit conversion, merging, aisles
