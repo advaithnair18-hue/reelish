@@ -170,7 +170,8 @@ Rules:
 - unit: e.g. "cup", "tbsp", "tsp", "g", "ml", "clove", "can"; "" for countable items.
 - raw_text: the words or on-screen text the amount came from; "" if estimated.
 - Skip water, ice, and things nobody shops for. Don't invent ingredients the video doesn't use.
-- steps: short instructions in order, from what is said, written or shown.
+- steps: at most 8 short instructions in order, from what is said, written or shown.
+- Be concise: no notes or commentary outside the JSON.
 
 <caption>
 {caption}
@@ -209,7 +210,7 @@ class ClaudeExtractor:
             "https://api.anthropic.com/v1/messages",
             headers={"x-api-key": self.api_key, "anthropic-version": "2023-06-01",
                      "content-type": "application/json"},
-            json={"model": self.model, "max_tokens": 2000,
+            json={"model": self.model, "max_tokens": 1200,
                   "messages": [{"role": "user", "content": content}]},
         )
         if resp.status_code != 200:

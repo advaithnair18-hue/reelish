@@ -187,3 +187,21 @@ def test_ensure_schema_adds_missing_columns():
     ensure_schema()
     assert "watched" in {c["name"] for c in inspect(engine).get_columns("recipes")}
     ensure_schema()  # running again is a no-op
+
+
+def test_pick_evenly():
+    assert media.pick_evenly(list(range(23)), 6) == [1, 5, 9, 14, 18, 22]
+    assert media.pick_evenly([1, 2], 6) == [1, 2]
+    assert media.pick_evenly([], 6) == []
+
+
+def test_one_pass_gives_keyframes_and_audio(tmp_path, talking_video):
+    video = tmp_path / "v.mp4"
+    # A key frame every 5 frames, like phone videos.
+    import subprocess
+    subprocess.run(["ffmpeg", "-y", "-loglevel", "error",
+                    "-f", "lavfi", "-i", "testsrc=size=320x568:rate=10:duration=4",
+                    "-f", "lavfi", "-i", "sine=duration=4", "-shortest", "-g", "5", "-pix_fmt", "yuv420p",
+                    "-c:a", "aac", str(video)], check=True)
+    frames, audio = media.keyframes_and_audio(video, tmp_path, has_audio=True)
+    assert len(frames) >= 6 and audio is not None and audio.stat().st_size > 0

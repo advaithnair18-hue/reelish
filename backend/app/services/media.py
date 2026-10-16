@@ -9,6 +9,7 @@ import json
 import logging
 import shutil
 import subprocess
+import time
 from dataclasses import dataclass, field
 from pathlib import Path
 
@@ -72,7 +73,8 @@ def sample_frames(video_path: Path, workdir: Path, duration: float, count: int |
         out = workdir / f"frame_{i:02d}.jpg"
         try:
             _run(["ffmpeg", "-y", "-loglevel", "error", "-ss", str(t), "-i", str(video_path),
-                  "-frames:v", "1", "-vf", "scale='min(512,iw)':-2", "-q:v", "5", str(out)], timeout=60)
+                  "-frames:v", "1", "-vf", f"scale='min({settings.frame_width},iw)':-2", "-q:v", "6", str(out)],
+                 timeout=60)
         except MediaError as exc:
             log.warning("frame at %ss: %s", t, exc)
             continue
@@ -135,15 +137,49 @@ def transcribe(audio_path: Path, client: httpx.Client | None = None) -> str:
     return local
 
 
+def pick_evenly(items: list, count: int) -> list:
+    """`count` items spread across the list, skipping the very first (often a title card)."""
+    if count <= 0 or not items:
+        return []
+    if len(items) <= count:
+        return list(items)
+    pool = items[1:] if len(items) > count + 1 else items
+    step = (len(pool) - 1) / (count - 1) if count > 1 else 0
+    return [pool[round(i * step)] for i in range(count)] if count > 1 else [pool[len(pool) // 2]]
+
+
+def keyframes_and_audio(video_path: Path, workdir: Path, has_audio: bool) -> tuple[list[Path], Path | None]:
+    """One ffmpeg pass: decode only the key frames (cheap) for stills, and pull the audio out
+    alongside. Much faster than seeking and decoding once per frame, which matters on small servers."""
+    frames_dir = workdir / "kf"
+    frames_dir.mkdir(exist_ok=True)
+    audio = workdir / "audio.mp3" if has_audio else None
+    cmd = ["ffmpeg", "-y", "-loglevel", "error", "-skip_frame", "nokey", "-i", str(video_path),
+           "-map", "0:v:0", "-vf", f"scale='min({settings.frame_width},iw)':-2", "-fps_mode", "vfr",
+           "-q:v", "6", str(frames_dir / "kf_%03d.jpg")]
+    if audio is not None:
+        cmd += ["-map", "0:a:0", "-vn", "-ac", "1", "-ar", "16000", "-b:a", "32k", str(audio)]
+    _run(cmd)
+    return sorted(frames_dir.glob("kf_*.jpg")), audio
+
+
 def analyze_video(video_path: Path, workdir: Path) -> VideoContent:
+    started = time.monotonic()
     duration, has_audio = probe(video_path)
-    content = VideoContent(frames=sample_frames(video_path, workdir, duration))
-    if has_audio:
-        audio = extract_audio(video_path, workdir / "audio.mp3")
+    keyframes, audio = keyframes_and_audio(video_path, workdir, has_audio)
+    frames = [f.read_bytes() for f in pick_evenly(keyframes, settings.max_frames)]
+    # Videos with very few key frames: fall back to seeking for evenly spaced stills.
+    if len(frames) < min(3, settings.max_frames) and duration > 1:
+        frames = sample_frames(video_path, workdir, duration)
+    decoded = time.monotonic()
+    content = VideoContent(frames=frames)
+    if audio is not None and audio.exists():
         try:
             content.transcript = transcribe(audio)
         except (MediaError, httpx.HTTPError) as exc:
             log.warning("speech-to-text failed: %s", exc)
         finally:
             audio.unlink(missing_ok=True)
+    log.info("video analysed: %.1fs of video, %d frames from %d key frames, decode %.1fs, speech %.1fs",
+             duration, len(frames), len(keyframes), decoded - started, time.monotonic() - decoded)
     return content

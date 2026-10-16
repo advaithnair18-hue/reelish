@@ -32,7 +32,8 @@ class Settings:
         self.transcribe_model = os.getenv("TRANSCRIBE_MODEL", "whisper-large-v3-turbo")
         self.whisper_model = os.getenv("WHISPER_MODEL", "base")
         # Still frames the AI looks at per video (on-screen text, visible ingredients).
-        self.max_frames = int(os.getenv("MAX_FRAMES", "8"))
+        self.max_frames = int(os.getenv("MAX_FRAMES", "6"))
+        self.frame_width = int(os.getenv("FRAME_WIDTH", "448"))
         # Instagram's official oEmbed needs a Meta app token; without it, Reels are saved
         # by link and you add the caption yourself.
         self.instagram_oembed_token = os.getenv("INSTAGRAM_OEMBED_TOKEN", "")

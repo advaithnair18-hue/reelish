@@ -9,8 +9,6 @@ from __future__ import annotations
 import importlib.util
 import logging
 import re
-import subprocess
-import sys
 from dataclasses import dataclass
 from pathlib import Path
 from urllib.parse import urlparse
@@ -96,22 +94,31 @@ def fetch_link_info(url: str, platform: str, client: httpx.Client | None = None)
 
 
 def download_video(url: str, dest_dir: Path) -> Path | None:
-    """Opt-in: fetch the video so its speech can be transcribed. Returns None if unavailable."""
+    """Download the shared video so the AI can watch and hear it. Returns None if unavailable.
+
+    Runs yt-dlp in-process (no extra Python start-up) and asks for a small version of the
+    video: 540p is plenty for reading on-screen text, and downloads and decodes faster.
+    """
     if not settings.enable_video_download or importlib.util.find_spec("yt_dlp") is None:
         return None
-    out = dest_dir / "shared.%(ext)s"
+    from yt_dlp import YoutubeDL
+
+    opts = {
+        "format": "b[ext=mp4][height<=540]/b[height<=540]/b[ext=mp4]/b",
+        "outtmpl": str(dest_dir / "shared.%(ext)s"),
+        "noplaylist": True,
+        "quiet": True,
+        "no_warnings": True,
+        "noprogress": True,
+        "socket_timeout": 15,
+        "retries": 1,
+        "max_filesize": 150 * 1024 * 1024,
+    }
     try:
-        result = subprocess.run(
-            [sys.executable, "-m", "yt_dlp", "--no-playlist", "--no-warnings", "--socket-timeout", "20",
-             "-f", "b[ext=mp4][height<=720]/b[height<=720]/b", "--max-filesize", "150M",
-             "-o", str(out), url],
-            capture_output=True, text=True, timeout=180,
-        )
-    except subprocess.TimeoutExpired:
-        log.warning("yt-dlp timed out for %s", url)
+        with YoutubeDL(opts) as ydl:
+            ydl.download([url])
+    except Exception as exc:  # noqa: BLE001 - any failure means "couldn't download", never a crash
+        log.warning("download failed for %s: %s", url, str(exc)[:300])
         return None
-    if result.returncode != 0:
-        log.warning("yt-dlp failed for %s: %s", url, result.stderr[-300:])
-        return None
-    files = sorted(dest_dir.glob("shared.*"))
+    files = sorted(p for p in dest_dir.glob("shared.*") if not p.name.endswith(".part"))
     return files[0] if files else None
