@@ -144,6 +144,7 @@ export const api = {
   login: (email: string, password: string) =>
     request<{ access_token: string }>("/auth/login", { method: "POST", body: json({ email, password }) }),
   me: () => request<User>("/auth/me"),
+  config: () => request<{ shortcut_url: string }>("/config"),
   updateMe: (patch: Partial<Pick<User, "auto_add">>) => request<User>("/auth/me", { method: "PATCH", body: json(patch) }),
   createShareKey: () => request<{ key: string; hint: string }>("/auth/share-key", { method: "POST" }),
   revokeShareKey: () => request<void>("/auth/share-key", { method: "DELETE" }),

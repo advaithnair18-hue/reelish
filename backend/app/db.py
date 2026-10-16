@@ -4,7 +4,8 @@ from sqlalchemy.orm import DeclarativeBase, sessionmaker
 from .config import settings
 
 _connect_args = {"check_same_thread": False} if settings.database_url.startswith("sqlite") else {}
-engine = create_engine(settings.database_url, connect_args=_connect_args)
+# pool_pre_ping: hosted Postgres (like Neon) sleeps when idle and drops connections.
+engine = create_engine(settings.database_url, connect_args=_connect_args, pool_pre_ping=True)
 
 if settings.database_url.startswith("sqlite"):
     @event.listens_for(engine, "connect")

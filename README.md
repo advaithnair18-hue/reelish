@@ -72,9 +72,13 @@ The share target only works over **HTTPS** on a real domain (or `localhost` for 
 | AI | Claude via the Messages API, with a rule-based fallback |
 | Auth | PBKDF2 password hashing, JWT bearer tokens |
 | Tests | pytest (134 tests), Vitest |
-| Ops | Docker Compose, nginx, GitHub Actions |
+| Ops | One-image Docker deploy (Render Blueprint), Docker Compose for local, GitHub Actions |
 
 ## Running it
+
+### Put it online (free)
+
+`render.yaml` and the root `Dockerfile` deploy Reelish as a single service on [Render](https://render.com), with a free [Neon](https://neon.com) Postgres database. In Render choose **New → Blueprint**, pick this repository, and paste your Neon connection string when asked. The full walkthrough, including the iPhone shortcut, is in the launch guide.
 
 ### Everything with Docker
 
@@ -102,7 +106,6 @@ npm run dev                                 # app on :5173, proxies /api
 
 Open http://localhost:5173 on your computer, or use Chrome's device toolbar to see the phone layout. API docs are at http://localhost:8000/docs.
 
-> Upgrading from the first version? The schema changed. Delete `backend/reelish.db` (or the Postgres volume) and restart.
 
 ### Tests
 

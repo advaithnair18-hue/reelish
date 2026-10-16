@@ -1,0 +1,21 @@
+# Render Blueprint: in Render, choose New → Blueprint and pick this repository.
+# Render asks for the values marked `sync: false`; everything else is set for you.
+services:
+  - type: web
+    name: reelish
+    runtime: docker
+    plan: free
+    dockerfilePath: ./Dockerfile
+    healthCheckPath: /api/health
+    autoDeploy: true
+    envVars:
+      - key: DATABASE_URL
+        sync: false          # paste the connection string from Neon
+      - key: ANTHROPIC_API_KEY
+        sync: false          # from platform.claude.com; leave blank to start without AI
+      - key: SHORTCUT_URL
+        sync: false          # iCloud link to your iPhone shortcut; add it later
+      - key: JWT_SECRET
+        generateValue: true  # a long random secret for logins
+      - key: ANTHROPIC_MODEL
+        value: claude-haiku-5-5

@@ -1,8 +1,9 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { api, User } from "./api";
 import { Icon, useToast } from "./ui";
 
-const SHORTCUT_URL = import.meta.env.VITE_SHORTCUT_URL ?? "";
+// Set on the server (SHORTCUT_URL), with a build-time fallback for local development.
+const BUILD_SHORTCUT_URL = import.meta.env.VITE_SHORTCUT_URL ?? "";
 
 /**
  * Copy text even though the key arrives after an await. Safari only allows clipboard writes
@@ -27,6 +28,11 @@ export default function ShortcutSetup({ user, onChange }: { user: User | null; o
   const toast = useToast();
   const [key, setKey] = useState("");
   const [busy, setBusy] = useState(false);
+  const [shortcutUrl, setShortcutUrl] = useState(BUILD_SHORTCUT_URL);
+
+  useEffect(() => {
+    api.config().then((c) => c.shortcut_url && setShortcutUrl(c.shortcut_url)).catch(() => {});
+  }, []);
 
   async function getKey() {
     if (user?.has_share_key && !confirm("Make a new key? The shortcut already on your phone will stop working until you reinstall it.")) return;
@@ -101,8 +107,8 @@ export default function ShortcutSetup({ user, onChange }: { user: User | null; o
           <strong>Install the shortcut</strong>
           <span>When it asks for your key, paste it.</span>
           <div className="key-row">
-            {SHORTCUT_URL ? (
-              <a className={`btn small ${key ? "primary" : "ghost"}`} href={SHORTCUT_URL} target="_blank" rel="noreferrer">
+            {shortcutUrl ? (
+              <a className={`btn small ${key ? "primary" : "ghost"}`} href={shortcutUrl} target="_blank" rel="noreferrer">
                 <Icon name="external" size={16} /> Get the shortcut
               </a>
             ) : (
