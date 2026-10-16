@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { api, User } from "./api";
+import { isIOS } from "./pwa";
 import { Icon, useToast } from "./ui";
 
 // Set on the server (SHORTCUT_URL), with a build-time fallback for local development.
@@ -70,7 +71,7 @@ export default function ShortcutSetup({ user, onChange }: { user: User | null; o
           <Icon name="share" size={22} />
         </span>
         <div>
-          <h2>Add Reelish to your share menu</h2>
+          <h2>{isIOS() ? "Add Reelish to your share menu" : "On iPhone: add Reelish to the share menu"}</h2>
           <p className="muted">On iPhone, an Apple Shortcut puts "Save to Reelish" in TikTok's share menu. One tap saves the recipe.</p>
         </div>
       </div>

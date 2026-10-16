@@ -33,6 +33,7 @@ export const isStandalone = () =>
   (navigator as Navigator & { standalone?: boolean }).standalone === true;
 
 export const isIOS = () => /iphone|ipad|ipod/i.test(navigator.userAgent);
+export const isAndroid = () => /android/i.test(navigator.userAgent);
 
 /** Returns a function that shows the browser's install dialog, or null if it isn't available. */
 export function useInstall(): (() => Promise<void>) | null {

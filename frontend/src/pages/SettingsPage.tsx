@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { api, token, User } from "../api";
-import { isIOS, isStandalone, useInstall } from "../pwa";
+import { isAndroid, isIOS, isStandalone, useInstall } from "../pwa";
 import ShortcutSetup from "../ShortcutSetup";
 import { Icon, Switch, useToast } from "../ui";
 
@@ -38,11 +38,11 @@ export default function SettingsPage() {
         </div>
       </section>
 
-      {isIOS() ? (
-        <ShortcutSetup user={user} onChange={setUser} />
-      ) : (
+      {/* iPhone users (and anyone setting up from a computer) get the shortcut setup. */}
+      {!isAndroid() && <ShortcutSetup user={user} onChange={setUser} />}
+      {!isIOS() && (
         <section className="panel">
-          <h2>Share from TikTok and Instagram</h2>
+          <h2>{isAndroid() ? "Share from TikTok and Instagram" : "On Android"}</h2>
           {isStandalone() ? (
             <p className="notice ok">
               <Icon name="check" size={18} /> Reelish is installed.
