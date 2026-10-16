@@ -261,7 +261,8 @@ def test_reread_keeps_caption_and_recipe(client, auth, oembed):
     rid = before["recipe_id"]
     assert client.get(f"/api/recipes/{rid}", headers=auth).json()["ingredient_count"] == 0
 
-    oembed["https://www.tiktok.com/@chef/video/5"] = "Garlic butter shrimp 🦐\n- 1 lb shrimp\n- 4 cloves garlic\n- 3 tbsp butter"
+    oembed["https://www.tiktok.com/@chef/video/5"] = (
+        "Garlic butter shrimp 🦐\n- 1 lb shrimp\n- 4 cloves garlic\n- 3 tbsp butter")
     r = client.post(f"/api/videos/{vid}/retry", headers=auth,
                     files={"_": (None, "")})  # an empty form, as the app sends
     assert r.status_code == 202
