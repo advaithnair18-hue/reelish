@@ -70,13 +70,12 @@ Show Notification [Dictionary Value]
 ## 6. Share it and connect it to the app
 
 1. In the Shortcuts app, long-press **Save to Reelish** → **Share** → **Copy iCloud Link**.
-2. In `frontend/.env` (create it if needed), add the link:
-   ```
-   VITE_SHORTCUT_URL=https://www.icloud.com/shortcuts/xxxxxxxxxxxxxxxx
-   ```
-3. Rebuild and redeploy the frontend. The **Get the shortcut** button in Settings now opens your shortcut.
+2. Give Reelish the link:
+   - **On Render:** open the service → **Environment**, set `SHORTCUT_URL` to the link, and choose **Save and deploy**.
+   - **Elsewhere:** set the `SHORTCUT_URL` environment variable on the server and restart it.
+3. The **Get the shortcut** button in Settings now opens your shortcut. The app reads the link from the server, so no rebuild is needed.
 
-If you change the shortcut later, share it again; iCloud gives a new link each time, so update `VITE_SHORTCUT_URL`.
+If you change the shortcut later, share it again; iCloud gives a new link each time, so update `SHORTCUT_URL`.
 
 ---
 
