@@ -8,25 +8,38 @@ from pathlib import Path
 from sqlalchemy.orm import Session
 
 from .. import storage
+from ..config import settings
 from ..db import SessionLocal
 from ..models import Ingredient, Recipe, User, Video
 from . import social
 from .extraction import extract_recipe
 from .lists import add_recipe, get_default_list, rebuild_lists_for
-from .media import MediaError, video_to_text
+from .media import MediaError, VideoContent, analyze_video
 from .units import normalize_unit, parse_quantity
 
 log = logging.getLogger(__name__)
 
 
-def _gather_text(video: Video, workdir: Path) -> None:
-    """Fill in video.caption / transcript / thumbnail from whatever sources are available."""
+def _video_file(video: Video, workdir: Path) -> Path | None:
+    """The video itself: a file the user uploaded or attached, else a download of the link."""
+    if video.storage_key:
+        path = storage.path_for(video.storage_key)
+        if path.is_file():
+            return path
+        log.warning("video %s: stored file %s is gone", video.id, video.storage_key)
+    if video.kind == "link":
+        return social.download_video(video.source_url, workdir)
+    return None
+
+
+def _gather(video: Video, workdir: Path) -> VideoContent | None:
+    """Fill in caption / creator / thumbnail, then watch and listen to the video if we can get it."""
     if video.kind == "link":
         try:
             info = social.fetch_link_info(video.source_url, video.platform)
         except social.LinkError as exc:
-            # Keep going if the user typed a caption; otherwise this is the error to show.
-            if not video.caption.strip():
+            # Keep going if there's a caption or a video file; otherwise this is the error to show.
+            if not video.caption.strip() and not video.storage_key:
                 raise ValueError(f"{exc} You can also paste the caption and retry.") from exc
             log.warning("video %s: %s", video.id, exc)
             info = social.LinkInfo()
@@ -34,17 +47,17 @@ def _gather_text(video: Video, workdir: Path) -> None:
             video.caption = f"{info.caption}\n{video.caption}".strip()
         video.author = video.author or info.author
         video.thumbnail_url = video.thumbnail_url or info.thumbnail_url
-        downloaded = social.download_video(video.source_url, workdir)
-        source = downloaded
-    else:
-        source = storage.path_for(video.storage_key)
 
-    if source is not None:
-        try:
-            video.transcript = video_to_text(source, workdir)
-        except MediaError as exc:
-            # A bad audio track shouldn't sink the job: the caption may be enough.
-            log.warning("video %s: %s", video.id, exc)
+    source = _video_file(video, workdir)
+    if source is None:
+        return None
+    try:
+        content = analyze_video(source, workdir)
+    except MediaError as exc:
+        log.warning("video %s: couldn't read the video file: %s", video.id, exc)
+        return None
+    video.transcript = content.transcript
+    return content
 
 
 def process_video(video_id: int, session_factory=SessionLocal) -> None:
@@ -57,16 +70,19 @@ def process_video(video_id: int, session_factory=SessionLocal) -> None:
         db.commit()
 
         with tempfile.TemporaryDirectory() as tmp:
-            _gather_text(video, Path(tmp))
+            content = _gather(video, Path(tmp))
         db.commit()
+        # Frames only help when the AI is on to look at them.
+        frames = content.frames if content and settings.anthropic_api_key else []
+        watched = bool(frames or (content and content.transcript))
 
-        if not video.caption.strip() and not video.transcript.strip():
+        if not video.caption.strip() and not video.transcript.strip() and not frames:
             hint = ("Instagram doesn't share captions without setup. Paste the caption and retry."
                     if video.platform == "instagram" else
                     "No speech or caption found. Paste the caption and retry.")
             raise ValueError(hint)
 
-        extracted = extract_recipe(video.caption, video.transcript)
+        extracted = extract_recipe(video.caption, video.transcript, frames)
 
         # Retrying updates the same recipe in place, so lists that contain it stay linked.
         recipe = video.recipe or Recipe(user_id=video.user_id, video_id=video.id)
@@ -75,6 +91,7 @@ def process_video(video_id: int, session_factory=SessionLocal) -> None:
         recipe.steps = extracted.steps
         recipe.reviewed = False
         recipe.estimated = extracted.estimated
+        recipe.watched = watched
         recipe.source_url, recipe.platform = video.source_url, video.platform
         recipe.author, recipe.thumbnail_url = video.author, video.thumbnail_url
         recipe.ingredients = [

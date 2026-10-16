@@ -119,7 +119,7 @@ export default function SharePage() {
           ) : (
             <p className="notice amber">No ingredients in this one. Add them from the recipe page.</p>
           )}
-          {phase.recipe.estimated && <p className="notice amber">Typical amounts for this dish. Check them against the video.</p>}
+          {phase.recipe.estimated && <p className="notice amber">Some amounts are typical ones for this dish. Check them against the video.</p>}
           <div className="share-actions">
             <Link to="/list" className="btn primary big">
               Open my list

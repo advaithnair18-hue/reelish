@@ -7,6 +7,7 @@ Two extractors share one interface:
 """
 from __future__ import annotations
 
+import base64
 import json
 import logging
 import re
@@ -137,6 +138,7 @@ class _LLMIngredient(BaseModel):
     quantity: str | float | int | None = ""
     unit: str | None = ""
     raw_text: str | None = ""
+    estimated: bool = False
 
 
 class _LLMRecipe(BaseModel):
@@ -146,21 +148,29 @@ class _LLMRecipe(BaseModel):
     steps: list[str] = []
 
 
-PROMPT = """You extract recipes from short cooking videos (TikTok / Instagram Reels).
-Below are the video's caption and an automatic speech transcript. Either may be empty,
-noisy, or contain chatter unrelated to cooking.
+PROMPT = """You turn short cooking videos (TikTok, Instagram Reels, YouTube Shorts) into a recipe
+someone can shop for. You get the video's caption, a transcript of what the creator says, and
+{frame_note}. Any of these may be empty or noisy, and creators often chat, joke or advertise.
+
+Find every ingredient the video uses: ones listed in the caption, ones the creator says, ones
+written on screen, and ones you can clearly see being added in the frames. Read on-screen text
+carefully; amounts are often only written there.
 
 Return ONLY a JSON object, no prose, matching:
 {{"title": str, "servings": int | null,
-  "ingredients": [{{"name": str, "quantity": str, "unit": str, "raw_text": str}}],
+  "ingredients": [{{"name": str, "quantity": str, "unit": str, "raw_text": str, "estimated": bool}}],
   "steps": [str]}}
 
 Rules:
+- title: the dish, short and plain ("Egg fried rice"), not the creator's hook.
 - name: what you would buy, without preparation words ("onion", not "diced onion").
-- quantity: a number or fraction as text ("1/2", "2"); "" if not stated. Never guess amounts.
+- quantity: a number or fraction as text ("1/2", "2"). Use the amount said, written or listed.
+  If an ingredient is clearly used but no amount is given, estimate a typical amount for the dish
+  and set "estimated": true. Otherwise "estimated": false.
 - unit: e.g. "cup", "tbsp", "tsp", "g", "ml", "clove", "can"; "" for countable items.
-- raw_text: the words the amount came from.
-- Only include ingredients actually mentioned. Do not invent any.
+- raw_text: the words or on-screen text the amount came from; "" if estimated.
+- Skip water, ice, and things nobody shops for. Don't invent ingredients the video doesn't use.
+- steps: short instructions in order, from what is said, written or shown.
 
 <caption>
 {caption}
@@ -192,23 +202,33 @@ class ClaudeExtractor:
     def __init__(self, api_key: str, model: str, client: httpx.Client | None = None):
         self.api_key = api_key
         self.model = model
-        self.client = client or httpx.Client(timeout=60)
+        self.client = client or httpx.Client(timeout=90)
 
-    def _ask(self, prompt: str) -> ExtractedRecipe:
+    def _ask(self, content: str | list) -> ExtractedRecipe:
         resp = self.client.post(
             "https://api.anthropic.com/v1/messages",
             headers={"x-api-key": self.api_key, "anthropic-version": "2023-06-01",
                      "content-type": "application/json"},
             json={"model": self.model, "max_tokens": 2000,
-                  "messages": [{"role": "user", "content": prompt}]},
+                  "messages": [{"role": "user", "content": content}]},
         )
         if resp.status_code != 200:
             raise ExtractionError(f"LLM request failed with HTTP {resp.status_code}")
         text = "".join(block.get("text", "") for block in resp.json().get("content", []))
         return parse_llm_json(text)
 
-    def extract(self, caption: str, transcript: str) -> ExtractedRecipe:
-        return self._ask(PROMPT.format(caption=caption[:8000], transcript=transcript[:20000]))
+    def extract(self, caption: str, transcript: str, frames: list[bytes] | None = None) -> ExtractedRecipe:
+        frames = frames or []
+        note = (f"{len(frames)} still frames taken evenly through the video, in order" if frames
+                else "no video frames (only the text was available)")
+        prompt = PROMPT.format(frame_note=note, caption=caption[:8000], transcript=transcript[:20000])
+        if not frames:
+            return self._ask(prompt)
+        content: list[dict] = [{"type": "text", "text": "Frames from the video, in order:"}]
+        content += [{"type": "image", "source": {"type": "base64", "media_type": "image/jpeg",
+                                                 "data": base64.b64encode(f).decode()}} for f in frames]
+        content.append({"type": "text", "text": prompt})
+        return self._ask(content)
 
     def estimate(self, text: str, servings: int | None) -> ExtractedRecipe:
         result = self._ask(ESTIMATE_PROMPT.format(text=text[:4000], servings=servings or 2))
@@ -233,11 +253,14 @@ def parse_llm_json(text: str) -> ExtractedRecipe:
                                          unit=i.unit or "", raw_text=i.raw_text or "")
                      for i in data.ingredients],
         steps=[s.strip() for s in data.steps if s.strip()],
+        estimated=any(i.estimated for i in data.ingredients),
     )
 
 
-def extract_recipe(caption: str, transcript: str, extractor: ClaudeExtractor | None = None) -> ExtractedRecipe:
-    """Use the LLM when configured, falling back to rules if it fails.
+def extract_recipe(caption: str, transcript: str, frames: list[bytes] | None = None,
+                   extractor: ClaudeExtractor | None = None) -> ExtractedRecipe:
+    """Use the LLM when configured (with the video's frames when we have them), falling back to
+    rules if it fails.
 
     If nothing in the video lists ingredients but it names a dish, ask the LLM for a
     typical ingredient list and mark the result estimated, so the user knows to check it.
@@ -247,7 +270,7 @@ def extract_recipe(caption: str, transcript: str, extractor: ClaudeExtractor | N
     result = None
     if extractor is not None:
         try:
-            result = extractor.extract(caption, transcript)
+            result = extractor.extract(caption, transcript, frames)
         except (ExtractionError, httpx.HTTPError) as exc:
             log.warning("LLM extraction failed, falling back to rules: %s", exc)
     if result is None or not result.ingredients:

@@ -11,7 +11,7 @@ Demos: [iPhone, with the Save to Reelish shortcut](docs/demo-iphone.mp4) · [And
 ## What it does
 
 - **Share straight from TikTok, Instagram or YouTube.** The app registers as a share target, so it appears in your phone's share sheet. Pasting a link or uploading a saved video also works.
-- **Extracts the recipe automatically**, from the caption and, when available, from what the creator says.
+- **Watches and listens to the video.** Reelish downloads the shared video, looks at frames from it (on-screen text, ingredients being added) and transcribes what the creator says, then the AI turns all of that plus the caption into a recipe. If a download is blocked, the recipe page asks you to save the video in TikTok and add it.
 - **Fills in the gaps.** If a video names a dish but never lists the ingredients, the AI suggests typical amounts and flags the recipe "Check amounts" so you know to look.
 - **Keeps one living grocery list.** New recipes are added automatically (you can turn this off). Duplicates merge with unit conversion: 1 cup + 4 tbsp of flour becomes 1 1/4 cups.
 - **Works in the store.** Items are grouped by aisle. Tap to tick things off, and mark what's already at home. Ticks survive when new recipes are added.
@@ -31,8 +31,9 @@ Service worker (/share-target)        the installed app's share target
         │                                  ▼
         │                    background job (Redis + RQ)
         │                     1. oEmbed: caption, creator, thumbnail
-        │                     2. optional: download + transcribe speech
-        │                     3. AI (or rules): text → structured recipe
+        │                     2. download the video (yt-dlp), or use one you attached
+        │                        → 8 still frames + speech-to-text (Groq)
+        │                     3. AI (Claude, with the frames) → structured recipe
         │                     4. estimate ingredients if none were listed
         │                     5. add to your list, merging duplicates
         ▼                                  │
@@ -47,7 +48,7 @@ Service worker (/share-target)        the installed app's share target
 | YouTube Shorts | Title, creator and thumbnail via the official oEmbed endpoint |
 | Instagram Reels | Needs a Meta app token (`INSTAGRAM_OEMBED_TOKEN`). Without it the Reel is saved and you paste its caption. |
 
-Downloading the video itself, so the app can transcribe what the creator *says*, is **opt-in** (`ENABLE_VIDEO_DOWNLOAD=true`, uses yt-dlp). Check each platform's terms before turning it on. Sharing a saved video file always works and is transcribed with Whisper.
+Downloading the video itself, so the AI can see and hear it, is switched on with `ENABLE_VIDEO_DOWNLOAD=true` (uses yt-dlp; on in `render.yaml`). Note that automated downloading isn't allowed by TikTok's terms, and TikTok may block it at any time; when that happens, Reelish reads the caption and asks the user to save the video and add it, which always works. Speech-to-text uses any OpenAI-compatible API (`TRANSCRIBE_API_KEY`, Groq by default), or local Whisper on larger servers.
 
 ### Phones
 
@@ -71,7 +72,7 @@ The share target only works over **HTTPS** on a real domain (or `localhost` for 
 | Video | oEmbed for links, ffmpeg + faster-whisper for speech, optional yt-dlp |
 | AI | Claude via the Messages API, with a rule-based fallback |
 | Auth | PBKDF2 password hashing, JWT bearer tokens |
-| Tests | pytest (134 tests), Vitest |
+| Tests | pytest (147 tests), Vitest |
 | Ops | One-image Docker deploy (Render Blueprint), Docker Compose for local, GitHub Actions |
 
 ## Running it

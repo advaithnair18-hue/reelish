@@ -48,12 +48,14 @@ export interface RecipeSummary {
   created_at: string;
   ingredient_count: number;
   in_default_list: boolean;
+  /** True when the AI saw and/or heard the video itself, not just its caption. */
+  watched: boolean;
+  video_id: number | null;
 }
 
 export interface Recipe extends RecipeSummary {
   servings: number | null;
   steps: string[];
-  video_id: number | null;
   ingredients: Ingredient[];
 }
 
@@ -166,6 +168,12 @@ export const api = {
   },
   /** Read a saved video again (e.g. after the AI key was added), keeping its caption. */
   rereadVideo: (id: number) => request<Video>(`/videos/${id}/retry`, { method: "POST", body: new FormData() }),
+  /** Give a shared link its video file (saved from TikTok) so the AI can watch it. */
+  attachVideo: (id: number, file: File) => {
+    const form = new FormData();
+    form.append("file", file);
+    return request<Video>(`/videos/${id}/file`, { method: "POST", body: form });
+  },
   deleteVideo: (id: number) => request<void>(`/videos/${id}`, { method: "DELETE" }),
 
   recipes: () => request<RecipeSummary[]>("/recipes?limit=200"),

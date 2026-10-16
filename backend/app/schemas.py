@@ -124,6 +124,8 @@ class RecipeSummary(BaseModel):
     created_at: datetime
     ingredient_count: int
     in_default_list: bool
+    watched: bool
+    video_id: int | None
 
     @staticmethod
     def _fields(r) -> dict:
@@ -131,7 +133,8 @@ class RecipeSummary(BaseModel):
                     source_url=r.source_url or "", platform=r.platform or "", author=r.author or "",
                     thumbnail_url=r.thumbnail_url or "", created_at=r.created_at,
                     ingredient_count=len(r.ingredients),
-                    in_default_list=any(gl.is_default for gl in r.lists))
+                    in_default_list=any(gl.is_default for gl in r.lists),
+                    watched=bool(r.watched), video_id=r.video_id)
 
     @classmethod
     def from_model(cls, r) -> RecipeSummary:
@@ -141,12 +144,11 @@ class RecipeSummary(BaseModel):
 class RecipeOut(RecipeSummary):
     servings: int | None
     steps: list[str]
-    video_id: int | None
     ingredients: list[IngredientOut]
 
     @classmethod
     def from_model(cls, r) -> RecipeOut:
-        return cls(**cls._fields(r), servings=r.servings, steps=r.steps or [], video_id=r.video_id,
+        return cls(**cls._fields(r), servings=r.servings, steps=r.steps or [],
                    ingredients=[IngredientOut.from_model(i) for i in r.ingredients])
 
 

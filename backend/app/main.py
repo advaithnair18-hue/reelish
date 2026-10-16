@@ -8,7 +8,7 @@ from fastapi.responses import FileResponse, JSONResponse, RedirectResponse
 
 from . import models  # noqa: F401 - registers tables on Base.metadata
 from .config import settings
-from .db import Base, engine
+from .db import ensure_schema
 from .routers import auth, lists, recipes, shortcut, videos
 
 logging.basicConfig(level=logging.INFO)
@@ -16,8 +16,8 @@ logging.basicConfig(level=logging.INFO)
 
 @asynccontextmanager
 async def lifespan(_app: FastAPI):
-    # Fine for a portfolio project; swap for Alembic migrations once the schema settles.
-    Base.metadata.create_all(engine)
+    # Adds new tables/columns on start; swap for Alembic migrations once the schema settles.
+    ensure_schema()
     yield
 
 

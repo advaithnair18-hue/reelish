@@ -27,3 +27,31 @@ def get_db():
         yield db
     finally:
         db.close()
+
+
+def ensure_schema() -> None:
+    """Create missing tables, then add any columns new code expects to existing tables.
+
+    A tiny stand-in for migrations: it only ever adds nullable columns with defaults, so a live
+    database (like the one on Neon) keeps working when a release adds a field.
+    """
+    from sqlalchemy import inspect, text
+
+    Base.metadata.create_all(engine)
+    inspector = inspect(engine)
+    with engine.begin() as conn:
+        for table in Base.metadata.sorted_tables:
+            existing = {c["name"] for c in inspector.get_columns(table.name)}
+            for column in table.columns:
+                if column.name in existing:
+                    continue
+                ddl = f'ALTER TABLE {table.name} ADD COLUMN {column.name} {column.type.compile(engine.dialect)}'
+                default = column.default.arg if column.default is not None and column.default.is_scalar else None
+                if isinstance(default, bool):
+                    ddl += f" DEFAULT {'TRUE' if default else 'FALSE'}" if engine.dialect.name != "sqlite" \
+                        else f" DEFAULT {int(default)}"
+                elif isinstance(default, (int, float)):
+                    ddl += f" DEFAULT {default}"
+                elif isinstance(default, str):
+                    ddl += " DEFAULT '" + default.replace("'", "''") + "'"
+                conn.execute(text(ddl))

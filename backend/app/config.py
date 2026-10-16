@@ -24,8 +24,15 @@ class Settings:
         self.anthropic_api_key = os.getenv("ANTHROPIC_API_KEY", "")
         # Haiku is fast and costs a fraction of a cent per recipe; Sonnet is stronger on messy speech.
         self.anthropic_model = os.getenv("ANTHROPIC_MODEL", "claude-haiku-5-5")
-        # faster-whisper model size, used only if the package is installed.
+        # Speech-to-text. A hosted OpenAI-compatible API (Groq by default) fits small servers;
+        # without a key, local faster-whisper is used if installed, else speech is skipped.
+        self.transcribe_api_key = os.getenv("TRANSCRIBE_API_KEY", "")
+        self.transcribe_api_url = os.getenv("TRANSCRIBE_API_URL",
+                                            "https://api.groq.com/openai/v1/audio/transcriptions")
+        self.transcribe_model = os.getenv("TRANSCRIBE_MODEL", "whisper-large-v3-turbo")
         self.whisper_model = os.getenv("WHISPER_MODEL", "base")
+        # Still frames the AI looks at per video (on-screen text, visible ingredients).
+        self.max_frames = int(os.getenv("MAX_FRAMES", "8"))
         # Instagram's official oEmbed needs a Meta app token; without it, Reels are saved
         # by link and you add the caption yourself.
         self.instagram_oembed_token = os.getenv("INSTAGRAM_OEMBED_TOKEN", "")
@@ -36,7 +43,7 @@ class Settings:
         # ingredient list and mark the recipe "estimated".
         self.estimate_missing = os.getenv("ESTIMATE_MISSING_INGREDIENTS", "true").lower() in ("1", "true", "yes")
         # How long the shortcut endpoint waits for a recipe before answering "saved, working on it".
-        self.shortcut_wait_seconds = float(os.getenv("SHORTCUT_WAIT_SECONDS", "12"))
+        self.shortcut_wait_seconds = float(os.getenv("SHORTCUT_WAIT_SECONDS", "40"))
         # iCloud link to the "Save to Reelish" iPhone shortcut (docs/ios-shortcut.md).
         self.shortcut_url = os.getenv("SHORTCUT_URL", "")
         # Built web app to serve alongside the API (set in the production Docker image).

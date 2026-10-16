@@ -227,7 +227,8 @@ class FakeLLM:
     def __init__(self, extracted, estimate):
         self.extracted, self.estimate_result, self.estimate_calls = extracted, estimate, 0
 
-    def extract(self, caption, transcript):
+    def extract(self, caption, transcript, frames=None):
+        self.frames = frames
         return self.extracted
 
     def estimate(self, text, servings):

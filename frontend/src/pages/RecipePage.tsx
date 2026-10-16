@@ -29,11 +29,11 @@ export default function RecipePage() {
     toast(on ? "Added to your list" : "Removed from your list");
   }
 
-  async function reread() {
+  async function reread(file?: File) {
     if (!recipe?.video_id) return;
     setRereading(true);
     try {
-      let video = await api.rereadVideo(recipe.video_id);
+      let video = file ? await api.attachVideo(recipe.video_id, file) : await api.rereadVideo(recipe.video_id);
       while (video.status === "uploaded" || video.status === "processing") {
         await new Promise((r) => setTimeout(r, 1500));
         video = await api.video(video.id);
@@ -106,22 +106,48 @@ export default function RecipePage() {
         <Switch checked={recipe.in_default_list} onChange={toggleList} label="On my grocery list" />
       </div>
 
-      {recipe.estimated && (
+      {recipe.source_url && !recipe.watched && recipe.video_id ? (
+        <div className="notice amber watch">
+          <Icon name="sparkle" size={18} />
+          <div>
+            <strong>Reelish couldn't watch this video</strong>
+            <p>
+              So it only read the caption{recipe.estimated ? " and filled in typical amounts" : ""}. For what the creator says
+              and shows: in TikTok tap Share, then Save video, then add it here.
+            </p>
+            <label className={`btn primary small ${rereading ? "disabled" : ""}`}>
+              <Icon name="upload" size={16} /> {rereading ? "Watching…" : "Add the video"}
+              <input
+                type="file"
+                accept="video/*"
+                hidden
+                disabled={rereading}
+                onChange={(e) => {
+                  const f = e.target.files?.[0];
+                  e.target.value = "";
+                  if (f) reread(f);
+                }}
+              />
+            </label>
+          </div>
+        </div>
+      ) : recipe.estimated ? (
         <p className="notice amber">
           <Icon name="sparkle" size={18} />
-          This video didn't list its ingredients, so these are typical amounts for this dish. Tap Edit to match the
-          video.
+          {recipe.watched
+            ? "Some amounts weren't said or shown in the video, so these are typical amounts. Tap Edit to adjust."
+            : "This video didn't list its ingredients, so these are typical amounts for this dish. Tap Edit to match the video."}
         </p>
-      )}
+      ) : null}
 
       <section>
         <h2>Ingredients{recipe.servings ? <span className="muted"> for {recipe.servings}</span> : null}</h2>
         {recipe.ingredients.length === 0 ? (
           <div className="empty-ings">
-            <p className="muted">This video's caption doesn't list its ingredients.</p>
+            <p className="muted">Reelish didn't find ingredients in this video yet.</p>
             <div className="row-gap">
               {recipe.video_id && (
-                <button className="btn primary small" onClick={reread} disabled={rereading}>
+                <button className="btn primary small" onClick={() => reread()} disabled={rereading}>
                   <Icon name="refresh" size={16} /> {rereading ? "Reading…" : "Read it again"}
                 </button>
               )}

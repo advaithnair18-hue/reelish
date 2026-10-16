@@ -63,6 +63,8 @@ class Recipe(Base):
     reviewed: Mapped[bool] = mapped_column(Boolean, default=False)
     # True when ingredients were inferred from the dish name rather than stated in the video.
     estimated: Mapped[bool] = mapped_column(Boolean, default=False)
+    # True when the AI saw and/or heard the video itself, not just its caption.
+    watched: Mapped[bool] = mapped_column(Boolean, default=False)
     # Copied from the video so they survive the video being deleted.
     source_url: Mapped[str] = mapped_column(String(1000), default="")
     platform: Mapped[str] = mapped_column(String(20), default="")

@@ -90,6 +90,27 @@ def retry_video(video_id: int, background: BackgroundTasks, caption: str | None 
     return _out(video)
 
 
+@router.post("/{video_id}/file", response_model=VideoOut, status_code=status.HTTP_202_ACCEPTED)
+def attach_file(video_id: int, background: BackgroundTasks, file: UploadFile = File(...),
+                user: User = Depends(current_user), db: Session = Depends(get_db)):
+    """Give a shared link its video file (saved from TikTok) when Reelish couldn't download it.
+    The same recipe is read again, now watching and listening to the video."""
+    video = _owned(db, video_id, user)
+    if video.status == "processing":
+        raise HTTPException(status.HTTP_409_CONFLICT, "Video is already processing")
+    try:
+        key = storage.save(_chunks(file), file.filename or "", settings.max_upload_mb * 1024 * 1024)
+    except ValueError as exc:
+        raise HTTPException(status.HTTP_422_UNPROCESSABLE_ENTITY, str(exc)) from exc
+    if video.storage_key:
+        storage.delete(video.storage_key)
+    video.storage_key, video.original_filename = key, (file.filename or "")[:255]
+    video.status, video.error = "uploaded", ""
+    db.commit()
+    enqueue_video(video.id, background)
+    return _out(video)
+
+
 @router.delete("/{video_id}", status_code=status.HTTP_204_NO_CONTENT)
 def delete_video(video_id: int, user: User = Depends(current_user), db: Session = Depends(get_db)):
     video = _owned(db, video_id, user)

@@ -15,6 +15,10 @@ services:
         sync: false          # from platform.claude.com; leave blank to start without AI
       - key: SHORTCUT_URL
         sync: false          # iCloud link to your iPhone shortcut; add it later
+      - key: TRANSCRIBE_API_KEY
+        sync: false          # Groq API key (console.groq.com) so the AI hears what's said
+      - key: ENABLE_VIDEO_DOWNLOAD
+        value: "true"        # download shared videos so the AI can watch them (see README)
       - key: JWT_SECRET
         generateValue: true  # a long random secret for logins
       - key: ANTHROPIC_MODEL

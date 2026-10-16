@@ -11,11 +11,14 @@ RUN npm run build
 FROM python:3.12-slim
 RUN apt-get update && apt-get install -y --no-install-recommends ffmpeg && rm -rf /var/lib/apt/lists/*
 WORKDIR /app
-COPY backend/requirements.txt backend/requirements-whisper.txt ./
-# Speech-to-text needs ~1 GB of memory; leave it off on small (free) servers.
+COPY backend/requirements.txt backend/requirements-whisper.txt backend/requirements-download.txt ./
+# Local speech-to-text needs ~1 GB of memory; small servers use a hosted service instead
+# (TRANSCRIBE_API_KEY). The video downloader (yt-dlp) is small and on by default.
 ARG WITH_WHISPER=false
+ARG WITH_DOWNLOAD=true
 RUN pip install --no-cache-dir -r requirements.txt \
- && if [ "$WITH_WHISPER" = "true" ]; then pip install --no-cache-dir -r requirements-whisper.txt; fi
+ && if [ "$WITH_WHISPER" = "true" ]; then pip install --no-cache-dir -r requirements-whisper.txt; fi \
+ && if [ "$WITH_DOWNLOAD" = "true" ]; then pip install --no-cache-dir -U -r requirements-download.txt; fi
 COPY backend/app ./app
 COPY backend/worker.py .
 COPY --from=web /web/dist ./static

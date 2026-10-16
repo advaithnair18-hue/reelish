@@ -6,10 +6,11 @@ embed or link to posts. Downloading the video itself is opt-in (ENABLE_VIDEO_DOW
 """
 from __future__ import annotations
 
+import importlib.util
 import logging
 import re
-import shutil
 import subprocess
+import sys
 from dataclasses import dataclass
 from pathlib import Path
 from urllib.parse import urlparse
@@ -96,14 +97,19 @@ def fetch_link_info(url: str, platform: str, client: httpx.Client | None = None)
 
 def download_video(url: str, dest_dir: Path) -> Path | None:
     """Opt-in: fetch the video so its speech can be transcribed. Returns None if unavailable."""
-    if not settings.enable_video_download or not shutil.which("yt-dlp"):
+    if not settings.enable_video_download or importlib.util.find_spec("yt_dlp") is None:
         return None
     out = dest_dir / "shared.%(ext)s"
-    result = subprocess.run(
-        ["yt-dlp", "--no-playlist", "-f", "mp4/best[height<=720]", "--max-filesize", "200M",
-         "-o", str(out), url],
-        capture_output=True, text=True, timeout=300,
-    )
+    try:
+        result = subprocess.run(
+            [sys.executable, "-m", "yt_dlp", "--no-playlist", "--no-warnings", "--socket-timeout", "20",
+             "-f", "b[ext=mp4][height<=720]/b[height<=720]/b", "--max-filesize", "150M",
+             "-o", str(out), url],
+            capture_output=True, text=True, timeout=180,
+        )
+    except subprocess.TimeoutExpired:
+        log.warning("yt-dlp timed out for %s", url)
+        return None
     if result.returncode != 0:
         log.warning("yt-dlp failed for %s: %s", url, result.stderr[-300:])
         return None
