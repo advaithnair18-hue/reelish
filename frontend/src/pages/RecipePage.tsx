@@ -13,6 +13,7 @@ export default function RecipePage() {
   const toast = useToast();
   const [recipe, setRecipe] = useState<Recipe | null>(null);
   const [editing, setEditing] = useState(false);
+  const [rereading, setRereading] = useState(false);
   const [error, setError] = useState("");
 
   useEffect(() => {
@@ -26,6 +27,26 @@ export default function RecipePage() {
     else await api.removeRecipeFromList(list.id, recipe.id);
     setRecipe({ ...recipe, in_default_list: on });
     toast(on ? "Added to your list" : "Removed from your list");
+  }
+
+  async function reread() {
+    if (!recipe?.video_id) return;
+    setRereading(true);
+    try {
+      let video = await api.rereadVideo(recipe.video_id);
+      while (video.status === "uploaded" || video.status === "processing") {
+        await new Promise((r) => setTimeout(r, 1500));
+        video = await api.video(video.id);
+      }
+      const updated = await api.recipe(recipeId);
+      setRecipe(updated);
+      toast(updated.ingredients.length ? `Found ${updated.ingredients.length} ingredients` : "Still no ingredients. Add them with Edit.",
+        updated.ingredients.length ? "ok" : "error");
+    } catch (err) {
+      toast((err as Error).message, "error");
+    } finally {
+      setRereading(false);
+    }
   }
 
   async function remove() {
@@ -96,9 +117,19 @@ export default function RecipePage() {
       <section>
         <h2>Ingredients{recipe.servings ? <span className="muted"> for {recipe.servings}</span> : null}</h2>
         {recipe.ingredients.length === 0 ? (
-          <p className="muted">
-            None found in this video. <button className="btn text inline" onClick={() => setEditing(true)}>Add them</button>
-          </p>
+          <div className="empty-ings">
+            <p className="muted">This video's caption doesn't list its ingredients.</p>
+            <div className="row-gap">
+              {recipe.video_id && (
+                <button className="btn primary small" onClick={reread} disabled={rereading}>
+                  <Icon name="refresh" size={16} /> {rereading ? "Reading…" : "Read it again"}
+                </button>
+              )}
+              <button className="btn ghost small" onClick={() => setEditing(true)}>
+                Add them myself
+              </button>
+            </div>
+          </div>
         ) : (
           <ul className="ingredients">
             {recipe.ingredients.map((i) => (

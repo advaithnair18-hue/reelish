@@ -164,6 +164,8 @@ export const api = {
     form.append("caption", caption);
     return request<Video>(`/videos/${id}/retry`, { method: "POST", body: form });
   },
+  /** Read a saved video again (e.g. after the AI key was added), keeping its caption. */
+  rereadVideo: (id: number) => request<Video>(`/videos/${id}/retry`, { method: "POST", body: new FormData() }),
   deleteVideo: (id: number) => request<void>(`/videos/${id}`, { method: "DELETE" }),
 
   recipes: () => request<RecipeSummary[]>("/recipes?limit=200"),

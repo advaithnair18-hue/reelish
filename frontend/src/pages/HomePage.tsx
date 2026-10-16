@@ -144,7 +144,9 @@ function RecipeCard({ recipe }: { recipe: RecipeSummary }) {
       <Thumb src={recipe.thumbnail_url} title={recipe.title} platform={recipe.platform} />
       <div className="card-shade" />
       <div className="card-body">
-        {recipe.estimated ? (
+        {recipe.ingredient_count === 0 ? (
+          <span className="sticker amber">No ingredients yet</span>
+        ) : recipe.estimated ? (
           <span className="sticker amber">Check amounts</span>
         ) : recipe.in_default_list ? (
           <span className="sticker lime">On your list</span>

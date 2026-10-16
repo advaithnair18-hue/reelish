@@ -250,3 +250,23 @@ def test_no_estimate_when_ingredients_were_found():
                   ExtractedRecipe(title="never"))
     r = extract_recipe("X", "", extractor=llm)
     assert not r.estimated and llm.estimate_calls == 0
+
+
+def test_reread_keeps_caption_and_recipe(client, auth, oembed):
+    """'Read it again' (e.g. after adding the AI key) re-runs a finished video in place."""
+    oembed["https://www.tiktok.com/@chef/video/5"] = "Garlic butter shrimp 🦐"
+    vid = share(client, auth, "https://www.tiktok.com/@chef/video/5").json()["id"]
+    before = client.get(f"/api/videos/{vid}", headers=auth).json()
+    assert before["status"] == "done"
+    rid = before["recipe_id"]
+    assert client.get(f"/api/recipes/{rid}", headers=auth).json()["ingredient_count"] == 0
+
+    oembed["https://www.tiktok.com/@chef/video/5"] = "Garlic butter shrimp 🦐\n- 1 lb shrimp\n- 4 cloves garlic\n- 3 tbsp butter"
+    r = client.post(f"/api/videos/{vid}/retry", headers=auth,
+                    files={"_": (None, "")})  # an empty form, as the app sends
+    assert r.status_code == 202
+    after = client.get(f"/api/videos/{vid}", headers=auth).json()
+    assert after["status"] == "done" and after["recipe_id"] == rid  # same recipe, updated
+    recipe = client.get(f"/api/recipes/{rid}", headers=auth).json()
+    assert recipe["ingredient_count"] == 3 and recipe["in_default_list"] is True
+    assert "shrimp" in items(default_list(client, auth))
