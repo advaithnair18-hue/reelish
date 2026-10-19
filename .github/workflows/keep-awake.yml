@@ -1,0 +1,26 @@
+name: Keep Reelish awake
+
+# Render's free plan puts the app to sleep after 15 minutes without visitors, and the next
+# visitor waits about a minute on Render's loading screen. Checking in every 10 minutes keeps
+# it awake. One always-on free service uses ~744 of the 750 free hours Render gives each month.
+# Upgrading the service to Render's Starter plan makes this unnecessary; then delete this file.
+
+on:
+  schedule:
+    - cron: "*/10 * * * *"
+  workflow_dispatch: {}
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    steps:
+      - name: Check in on Reelish
+        env:
+          APP_URL: https://reelish-9lie.onrender.com
+        run: |
+          for attempt in 1 2 3; do
+            if curl -fsS --max-time 60 "$APP_URL/api/health"; then echo; echo "Awake"; exit 0; fi
+            echo "Attempt $attempt failed, retrying"; sleep 10
+          done
+          echo "Reelish didn't answer"; exit 1

@@ -4,7 +4,7 @@ from urllib.parse import urlencode
 
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import FileResponse, JSONResponse, RedirectResponse
+from fastapi.responses import FileResponse, HTMLResponse, JSONResponse, RedirectResponse
 
 from . import models  # noqa: F401 - registers tables on Base.metadata
 from .config import settings
@@ -57,16 +57,22 @@ async def share_target_fallback(request: Request):
 if settings.static_dir and (settings.static_dir / "index.html").is_file():
     STATIC = settings.static_dir.resolve()
     NO_CACHE = {"Cache-Control": "no-cache"}
+    INDEX_HTML = (STATIC / "index.html").read_text()
+
+    def app_shell(request: Request) -> HTMLResponse:
+        # Link previews need absolute URLs; use the address the app was reached at.
+        base = str(request.base_url).rstrip("/")
+        return HTMLResponse(INDEX_HTML.replace("__PUBLIC_URL__", base), headers=NO_CACHE)
 
     @app.get("/{path:path}", include_in_schema=False)
-    def web_app(path: str):
+    def web_app(path: str, request: Request):
         if path.startswith("api/"):
             return JSONResponse({"detail": "Not Found"}, status_code=404)
         file = (STATIC / path).resolve()
-        if path and file.is_file() and STATIC in file.parents:
+        if path and path != "index.html" and file.is_file() and STATIC in file.parents:
             if path.startswith("assets/"):  # content-hashed by Vite, safe to cache forever
                 return FileResponse(file, headers={"Cache-Control": "public, max-age=31536000, immutable"})
             media = "application/manifest+json" if file.suffix == ".webmanifest" else None
             return FileResponse(file, media_type=media, headers=NO_CACHE)
         # Any other path is a screen in the app (/list, /recipes/3...): serve the app shell.
-        return FileResponse(STATIC / "index.html", headers=NO_CACHE)
+        return app_shell(request)

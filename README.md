@@ -79,7 +79,11 @@ The share target only works over **HTTPS** on a real domain (or `localhost` for 
 
 ### Put it online (free)
 
+Live at **[reelish-9lie.onrender.com](https://reelish-9lie.onrender.com)**.
+
 `render.yaml` and the root `Dockerfile` deploy Reelish as a single service on [Render](https://render.com), with a free [Neon](https://neon.com) Postgres database. In Render choose **New → Blueprint**, pick this repository, and paste your Neon connection string when asked. The full walkthrough, including the iPhone shortcut, is in the launch guide.
+
+On Render's free plan the app sleeps after 15 minutes idle; `.github/workflows/keep-awake.yml` checks in every 10 minutes so visitors don't see Render's loading screen. On the Starter plan, delete that workflow.
 
 ### Everything with Docker
 
